@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { UserButton, useUser } from '@clerk/nextjs';
-import { Button } from '@/components/ui/button';
 import BottomNav from '@/components/dashboard/BottomNav';
 import { 
   Menu, 
@@ -29,7 +28,6 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   { name: 'Overview', href: '/dashboard', icon: <LayoutDashboard size={18} /> },
-  { name: 'Quick Access Tools', href: '/dashboard', icon: <Wrench size={18} /> },
   { name: 'Prompt Trading', href: '/dashboard/prompt-trading', icon: <MessageSquare size={18} /> },
   { name: 'Auto Trading', href: '/dashboard/auto-trading', icon: <Zap size={18} /> },
   { name: 'AI Trading', href: '/dashboard/ai-trading', icon: <Bot size={18} /> },
