@@ -17,7 +17,6 @@ export default function SignUpPage() {
           if (data.status === 'ACTIVE') {
             router.push('/dashboard');
           }
-          // If not ACTIVE, stay on sign-up page (to enter code)
         })
         .catch(() => {});
     }
@@ -25,7 +24,7 @@ export default function SignUpPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
-      <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 max-w-md w-full border border-gray-700">
+      <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 md:p-8 max-w-md w-full border border-gray-700">
         <div className="flex justify-center mb-6">
           <Image
             src="https://i.postimg.cc/TYFKgV5s/Chat-GPT-Image-Aug-9-2026-05-52-20-PM.png"
@@ -40,7 +39,9 @@ export default function SignUpPage() {
           {isSignedIn ? 'Enter your activation code below' : 'Sign up to start your AI trading journey'}
         </p>
         {!isSignedIn ? (
-          <SignUp routing="hash" signInUrl="/sign-in" />
+          <div className="w-full overflow-hidden">
+            <SignUp routing="hash" signInUrl="/sign-in" />
+          </div>
         ) : (
           <div className="space-y-4">
             <p className="text-gray-300 text-sm text-center">
@@ -97,7 +98,7 @@ function CodeEntryForm() {
         placeholder="e.g., pro-john123"
         value={code}
         onChange={(e) => setCode(e.target.value.toLowerCase())}
-        className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400"
+        className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 text-base"
         required
       />
       {error && <div className="text-red-400 text-sm">{error}</div>}
