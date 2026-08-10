@@ -7,28 +7,34 @@ import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { ChevronDown, ChevronUp, MessageCircle } from 'lucide-react';
 
 export default function HomePage() {
+  const [faqOpen, setFaqOpen] = useState(false);
+
   return (
     <div className="min-h-screen">
       {/* ========== HERO SECTION ========== */}
       <section className="relative min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 overflow-hidden">
+        {/* Background Image with MORE visibility */}
         <div className="absolute inset-0">
           <Image
             src="https://i.postimg.cc/jqNxmpDF/Forex-Trading-and-Chart-Wallpapers-Collection.jpg"
             alt="Forex Trading Background"
             fill
-            className="object-cover opacity-20"
+            className="object-cover opacity-30"
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-br from-gray-900/90 via-gray-800/80 to-gray-900/90"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-gray-900/85 via-gray-800/75 to-gray-900/85"></div>
         </div>
 
+        {/* Animated Elements */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute top-20 left-20 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
           <div className="absolute bottom-20 right-20 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
         </div>
 
+        {/* Navigation */}
         <nav className="relative z-10 container mx-auto px-4 py-6 flex justify-between items-center">
           <Link href="/" className="flex items-center gap-3">
             <Image
@@ -48,9 +54,6 @@ export default function HomePage() {
             </div>
           </Link>
           <div className="flex items-center gap-4">
-            <Link href="#pricing" className="text-blue-300 hover:text-blue-200 text-sm hidden md:inline">
-              Pricing
-            </Link>
             <Link href="/sign-up" className="text-blue-300 hover:text-blue-200 text-sm">
               Sign Up
             </Link>
@@ -74,7 +77,8 @@ export default function HomePage() {
           </div>
         </nav>
 
-        <main className="relative z-10 container mx-auto px-4 py-20 text-center">
+        {/* Hero Content */}
+        <main className="relative z-10 container mx-auto px-4 py-16 md:py-20 text-center">
           <div className="max-w-4xl mx-auto">
             <div className="inline-block bg-white/10 backdrop-blur-sm border border-white/10 rounded-full px-6 py-2 mb-6">
               <span className="text-sm text-blue-200 font-medium">
@@ -82,7 +86,7 @@ export default function HomePage() {
               </span>
             </div>
 
-            <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
+            <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
               AI-Powered Forex
               <br />
               <span className="bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">
@@ -90,191 +94,92 @@ export default function HomePage() {
               </span>
             </h1>
 
-            <p className="text-xl text-gray-300 max-w-2xl mx-auto mb-10 leading-relaxed">
+            <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto mb-8 leading-relaxed">
               Get real-time AI-driven market analysis, support/resistance levels, 
               and actionable trading signals for major currency pairs.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/sign-up">
-                <Button size="lg" className="bg-blue-500 text-white hover:bg-blue-600 text-lg px-8 font-semibold shadow-xl hover:shadow-2xl transition-all">
-                  Get Started Free
-                </Button>
-              </Link>
-              <Button
-                size="lg"
-                variant="outline"
-                className="text-white border-white/30 hover:bg-white/10 text-lg px-8"
-                onClick={() => document.getElementById('stats')?.scrollIntoView({ behavior: 'smooth' })}
-              >
-                Explore Features ↓
-              </Button>
+            {/* Stats - Horizontal after title */}
+            <div className="flex flex-wrap justify-center gap-8 md:gap-12 mb-10">
+              <div className="text-center">
+                <div className="text-3xl md:text-4xl font-bold text-blue-400">3K+</div>
+                <div className="text-xs md:text-sm text-gray-400">Traders Reached</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl md:text-4xl font-bold text-blue-400">Global</div>
+                <div className="text-xs md:text-sm text-gray-400">Market Coverage</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl md:text-4xl font-bold text-blue-400">Fast</div>
+                <div className="text-xs md:text-sm text-gray-400">Responsive AI</div>
+              </div>
             </div>
+
+            {/* Start Trading Button - Yellow/Orange Gradient */}
+            <Link href="/sign-up">
+              <Button 
+                size="lg" 
+                className="bg-gradient-to-r from-yellow-400 via-orange-500 to-yellow-600 hover:from-yellow-500 hover:via-orange-600 hover:to-yellow-700 text-white font-bold text-lg px-10 py-7 rounded-full shadow-xl shadow-orange-500/30 hover:shadow-2xl hover:shadow-orange-500/50 transition-all duration-300 transform hover:scale-105"
+              >
+                🚀 Start Trading Today
+              </Button>
+            </Link>
           </div>
         </main>
       </section>
 
-      {/* ========== STATS SECTION ========== */}
-      <section id="stats" className="py-16 bg-gray-900 border-t border-gray-800">
+      {/* ========== WHY CHOOSE PIPNEX - DROPDOWN ========== */}
+      <section className="py-12 bg-gray-900 border-t border-gray-800">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-            <div className="text-center">
-              <div className="text-5xl font-bold text-blue-400">3K+</div>
-              <div className="text-gray-400 mt-2">Traders Reached</div>
+          <button
+            onClick={() => setFaqOpen(!faqOpen)}
+            className="w-full max-w-2xl mx-auto flex items-center justify-between bg-gray-800/50 border border-gray-700 rounded-xl px-6 py-4 hover:border-blue-400 transition-colors"
+          >
+            <h2 className="text-xl md:text-2xl font-bold text-white">
+              Why Choose <span className="text-blue-400">PipnexAi Algo</span>
+            </h2>
+            {faqOpen ? <ChevronUp className="text-blue-400" size={24} /> : <ChevronDown className="text-blue-400" size={24} />}
+          </button>
+
+          {faqOpen && (
+            <div className="max-w-2xl mx-auto mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FeatureCard
+                icon="📊"
+                title="Advanced AI Analysis"
+                description="Real-time market analysis with 90%+ accuracy on entry/exit signals."
+              />
+              <FeatureCard
+                icon="⚡"
+                title="Nova Edge EA Systems"
+                description="Swing market scalps, hedges, and automated strategies."
+              />
+              <FeatureCard
+                icon="📱"
+                title="Mobile App Ready"
+                description="Install the app on your phone and trade anywhere, anytime."
+              />
+              <FeatureCard
+                icon="🔒"
+                title="Enterprise Security"
+                description="Bank-grade encryption and 24/7 monitoring."
+              />
+              <FeatureCard
+                icon="📈"
+                title="Multi-Timeframe Analysis"
+                description="Analyze trends across multiple timeframes simultaneously."
+              />
+              <FeatureCard
+                icon="🤖"
+                title="Cloud Bots"
+                description="Run automated trading bots 24/7 without a PC."
+              />
             </div>
-            <div className="text-center">
-              <div className="text-5xl font-bold text-blue-400">Global</div>
-              <div className="text-gray-400 mt-2">Market Coverage</div>
-            </div>
-            <div className="text-center">
-              <div className="text-5xl font-bold text-blue-400">Fast</div>
-              <div className="text-gray-400 mt-2">Responsive AI</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ========== WHY CHOOSE PIPNEX AI ALGO ========== */}
-      <section className="py-20 bg-gray-900">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-white text-center mb-4">
-            Why Choose <span className="text-blue-400">PipnexAi Algo</span>
-          </h2>
-          <p className="text-gray-400 text-center max-w-2xl mx-auto mb-12">
-            Advanced AI technology combined with professional trading strategies to give you the edge.
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-            <FeatureCard
-              icon="📊"
-              title="Advanced AI Analysis"
-              description="Real-time market analysis with 90%+ accuracy on entry/exit signals using cutting-edge AI models."
-            />
-            <FeatureCard
-              icon="⚡"
-              title="Nova Edge EA Systems"
-              description="Advanced algorithmic trading systems designed for swing market scalps, hedges, and automated strategies."
-            />
-            <FeatureCard
-              icon="📱"
-              title="Mobile App Ready"
-              description="Install the app on your phone and trade anywhere, anytime with full platform functionality."
-            />
-            <FeatureCard
-              icon="🔒"
-              title="Enterprise Security"
-              description="Bank-grade encryption and 24/7 monitoring to keep your data and funds secure."
-            />
-            <FeatureCard
-              icon="📈"
-              title="Multi-Timeframe Analysis"
-              description="Analyze trends across multiple timeframes simultaneously for better decision making."
-            />
-            <FeatureCard
-              icon="🤖"
-              title="Cloud Bots"
-              description="Run automated trading bots 24/7 without a PC. Free VPS included with select plans."
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* ========== WHY TRADERS CHOOSE ========== */}
-      <section className="py-20 bg-gray-800 border-t border-gray-700">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-white text-center mb-4">
-            Why Traders Choose <span className="text-blue-400">PipnexAi Algo</span>
-          </h2>
-          <p className="text-gray-400 text-center max-w-2xl mx-auto mb-12">
-            Join thousands of traders who trust our AI-powered platform.
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            <AdvantageCard
-              icon="🎯"
-              title="90%+ Signal Accuracy"
-              description="Our AI models deliver highly accurate entry and exit signals validated by real market data."
-            />
-            <AdvantageCard
-              icon="⚡"
-              title="Real-Time Analysis"
-              description="Get instant market insights powered by Twelve Data and OpenAI's latest models."
-            />
-            <AdvantageCard
-              icon="🔧"
-              title="Nova Edge EA Integration"
-              description="Professional algorithmic trading systems for scalping, hedging, and swing trading."
-            />
-            <AdvantageCard
-              icon="📱"
-              title="Mobile & Web Access"
-              description="Access your account from any device with our responsive web platform and mobile app."
-            />
-            <AdvantageCard
-              icon="📊"
-              title="Multi-Asset Coverage"
-              description="Analyze major currency pairs, commodities, and indices from a single platform."
-            />
-            <AdvantageCard
-              icon="🛡️"
-              title="Risk Management Tools"
-              description="Position size calculator, stop-loss recommendations, and risk analysis built-in."
-            />
-            <AdvantageCard
-              icon="📰"
-              title="News & Economic Calendar"
-              description="Stay ahead of market-moving events with real-time news and economic data."
-            />
-            <AdvantageCard
-              icon="🤝"
-              title="24/7 Priority Support"
-              description="Get dedicated support from our team whenever you need assistance."
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* ========== REVIEWS SECTION ========== */}
-      <section className="py-20 bg-gray-900">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-white text-center mb-4">
-            What Traders Say About <span className="text-blue-400">PipnexAi Algo</span>
-          </h2>
-          <p className="text-gray-400 text-center max-w-2xl mx-auto mb-12">
-            Real reviews from real traders who use our platform every day.
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-            <TestimonialCard
-              name="John M."
-              role="Forex Trader"
-              text="PipnexAi Algo transformed my trading. The AI signals are incredibly accurate and the cloud bots run flawlessly. I've doubled my profits in 3 months."
-              rating={5}
-            />
-            <TestimonialCard
-              name="Sarah K."
-              role="Professional Trader"
-              text="The Nova Edge EA system is a game-changer. I've been using it for 6 months and my consistency has never been better. Highly recommended!"
-              rating={5}
-            />
-            <TestimonialCard
-              name="David R."
-              role="Swing Trader"
-              text="Finally a platform that combines AI analysis with automated execution. The VPS included is a huge bonus. Best investment I've made."
-              rating={5}
-            />
-          </div>
-
-          {/* Review Submission */}
-          <div className="max-w-2xl mx-auto mt-12 bg-gray-800/50 border border-gray-700 rounded-xl p-6">
-            <h3 className="text-white font-semibold text-lg mb-4">Share Your Experience</h3>
-            <ReviewForm />
-          </div>
+          )}
         </div>
       </section>
 
       {/* ========== PRICING SECTION ========== */}
-      <section id="pricing" className="py-20 bg-gray-800 border-t border-gray-700">
+      <section id="pricing" className="py-16 md:py-20 bg-gray-800 border-t border-gray-700">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl md:text-4xl font-bold text-white text-center mb-4">
             Choose Your <span className="text-blue-400">Plan</span>
@@ -284,8 +189,8 @@ export default function HomePage() {
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {/* Pro Plan */}
-            <PricingCard
+            {/* Pro Plan - Blue/Silver */}
+            <PricingCardPro
               name="Pro"
               description="For serious traders who need more power"
               price="$30"
@@ -302,12 +207,11 @@ export default function HomePage() {
                 "Trading Journal",
                 "24/7 Priority Support",
               ]}
-              planKey="pro"
               popular={false}
             />
 
-            {/* Gold Plan - Most Popular */}
-            <PricingCard
+            {/* Gold Plan - Gold/Yellow */}
+            <PricingCardGold
               name="Gold"
               description="Maximum performance and unlimited features"
               price="$99.99"
@@ -324,12 +228,11 @@ export default function HomePage() {
                 "Unlimited Custom Setups",
                 "24/7 Priority Support",
               ]}
-              planKey="gold"
               popular={true}
             />
 
-            {/* Platinum Plan */}
-            <PricingCard
+            {/* Platinum Plan - Purple/Platinum */}
+            <PricingCardPlatinum
               name="Platinum"
               description="Run bots 24/7 without PC • Free VPS included"
               price="$299.99"
@@ -350,20 +253,23 @@ export default function HomePage() {
                 "Priority AI processing",
                 "White-glove support",
               ]}
-              planKey="platinum"
               popular={false}
             />
           </div>
-
-          <div className="text-center mt-12">
-            <p className="text-gray-400 text-sm">
-              All plans include a 7-day free trial. No credit card required.
-              <br />
-              Need help choosing? <span className="text-blue-400">Contact our team</span>
-            </p>
-          </div>
         </div>
       </section>
+
+      {/* ========== FLOATING WHATSAPP BUTTON ========== */}
+      <a
+        href="https://wa.me/254101606189?text=Hello%2C%20I%20want%20to%20subscribe%20to%20PipnexAi%20Algo.%20Please%20send%20me%20payment%20details%20for%20the%20following%20plan%3A"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-24 right-4 md:bottom-8 md:right-8 z-50 flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white font-semibold px-4 py-3 rounded-full shadow-xl shadow-green-500/40 hover:shadow-2xl hover:shadow-green-500/60 transition-all duration-300 hover:scale-105"
+      >
+        <MessageCircle size={22} />
+        <span className="text-sm hidden sm:inline">Make Payment</span>
+        <span className="text-sm sm:hidden">Pay</span>
+      </a>
 
       {/* ========== FOOTER ========== */}
       <footer className="bg-gray-900 border-t border-gray-800 py-8">
@@ -386,141 +292,25 @@ export default function HomePage() {
 
 function FeatureCard({ icon, title, description }: { icon: string; title: string; description: string }) {
   return (
-    <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6 hover:border-blue-400 transition-all group">
-      <div className="text-4xl mb-3">{icon}</div>
-      <h3 className="text-white font-semibold text-lg mb-2">{title}</h3>
-      <p className="text-gray-400 text-sm">{description}</p>
-    </div>
-  );
-}
-
-function AdvantageCard({ icon, title, description }: { icon: string; title: string; description: string }) {
-  return (
-    <div className="flex gap-4 bg-gray-900/50 border border-gray-700 rounded-xl p-4 hover:border-blue-400 transition-all">
-      <div className="text-3xl flex-shrink-0">{icon}</div>
-      <div>
-        <h4 className="text-white font-semibold text-sm">{title}</h4>
-        <p className="text-gray-400 text-xs">{description}</p>
-      </div>
-    </div>
-  );
-}
-
-function TestimonialCard({ name, role, text, rating }: { name: string; role: string; text: string; rating: number }) {
-  return (
-    <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6 hover:border-blue-400 transition-all">
-      <div className="flex items-center gap-1 mb-3">
-        {[...Array(rating)].map((_, i) => (
-          <span key={i} className="text-yellow-400 text-lg">★</span>
-        ))}
-      </div>
-      <p className="text-gray-300 text-sm mb-4">"{text}"</p>
-      <div>
-        <p className="text-white font-semibold">{name}</p>
-        <p className="text-gray-400 text-xs">{role}</p>
-      </div>
-    </div>
-  );
-}
-
-function ReviewForm() {
-  const [name, setName] = useState('');
-  const [review, setReview] = useState('');
-  const [rating, setRating] = useState(5);
-  const [submitted, setSubmitted] = useState(false);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Here you would send the review to your API
-    console.log('Review submitted:', { name, review, rating });
-    setSubmitted(true);
-    setTimeout(() => {
-      setName('');
-      setReview('');
-      setRating(5);
-      setSubmitted(false);
-    }, 3000);
-  };
-
-  if (submitted) {
-    return (
-      <div className="bg-green-500/10 border border-green-500/50 rounded-lg p-4 text-center">
-        <p className="text-green-400 font-medium">✅ Thank you for your review!</p>
-        <p className="text-gray-400 text-sm">Your feedback helps us improve.</p>
-      </div>
-    );
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-4 hover:border-blue-400 transition-all">
+      <div className="flex items-center gap-3">
+        <span className="text-2xl">{icon}</span>
         <div>
-          <label className="block text-sm text-gray-300 mb-1">Your Name</label>
-          <Input
-            type="text"
-            placeholder="e.g., John Doe"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="bg-gray-800 border-gray-600 text-white placeholder-gray-400"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-sm text-gray-300 mb-1">Rating</label>
-          <select
-            value={rating}
-            onChange={(e) => setRating(Number(e.target.value))}
-            className="w-full p-2 bg-gray-800 border border-gray-600 rounded-lg text-white"
-          >
-            <option value={5}>⭐⭐⭐⭐⭐</option>
-            <option value={4}>⭐⭐⭐⭐</option>
-            <option value={3}>⭐⭐⭐</option>
-            <option value={2}>⭐⭐</option>
-            <option value={1}>⭐</option>
-          </select>
+          <h3 className="text-white font-semibold text-sm">{title}</h3>
+          <p className="text-gray-400 text-xs">{description}</p>
         </div>
       </div>
-      <div>
-        <label className="block text-sm text-gray-300 mb-1">Your Review</label>
-        <textarea
-          rows={3}
-          placeholder="Write your experience with PipnexAi Algo..."
-          value={review}
-          onChange={(e) => setReview(e.target.value)}
-          className="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 resize-none"
-          required
-        />
-      </div>
-      <Button type="submit" className="w-full bg-blue-500 hover:bg-blue-600 text-white">
-        Submit Review
-      </Button>
-    </form>
+    </div>
   );
 }
 
-function PricingCard({
-  name,
-  description,
-  price,
-  period,
-  features,
-  planKey,
-  popular,
-}: {
-  name: string;
-  description: string;
-  price: string;
-  period: string;
-  features: string[];
-  planKey: string;
-  popular: boolean;
-}) {
+// ============================================
+// PRICING CARDS WITH DIFFERENT COLORS
+// ============================================
+
+function PricingCardPro({ name, description, price, period, features, popular }: any) {
   return (
-    <div
-      className={`relative bg-gray-900/50 border ${
-        popular ? 'border-blue-400' : 'border-gray-700'
-      } rounded-2xl p-6 hover:border-blue-400 transition-all flex flex-col`}
-    >
+    <div className={`relative bg-gradient-to-br from-gray-800 to-gray-900 border ${popular ? 'border-blue-400' : 'border-gray-600'} rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1`}>
       {popular && (
         <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white text-xs font-bold px-4 py-1 rounded-full">
           MOST POPULAR
@@ -530,32 +320,89 @@ function PricingCard({
         <h3 className="text-2xl font-bold text-white">{name}</h3>
         <p className="text-gray-400 text-sm mt-1">{description}</p>
         <div className="mt-4">
-          <span className="text-4xl font-bold text-white">{price}</span>
+          <span className="text-4xl font-bold text-blue-400">{price}</span>
           <span className="text-gray-400 text-sm ml-1">{period}</span>
         </div>
       </div>
-
-      <div className="space-y-2 mb-6 flex-grow">
-        {features.map((feature, i) => (
+      <div className="space-y-2 mb-6 max-h-64 overflow-y-auto">
+        {features.map((feature: string, i: number) => (
           <div key={i} className="flex items-start gap-2 text-sm">
             <span className="text-blue-400 mt-0.5">✓</span>
             <span className="text-gray-300">{feature}</span>
           </div>
         ))}
       </div>
-
       <Link href="/sign-up">
-        <Button
-          className={`w-full ${
-            popular ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'
-          } text-white`}
-        >
+        <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-all">
           Get Started
         </Button>
       </Link>
-      <p className="text-xs text-gray-500 text-center mt-3">
-        7-day free trial · No credit card required
-      </p>
+    </div>
+  );
+}
+
+function PricingCardGold({ name, description, price, period, features, popular }: any) {
+  return (
+    <div className={`relative bg-gradient-to-br from-yellow-900/40 to-amber-900/40 border ${popular ? 'border-yellow-400' : 'border-yellow-600/30'} rounded-2xl p-6 shadow-xl shadow-yellow-500/10 hover:shadow-2xl hover:shadow-yellow-500/20 transition-all duration-300 hover:-translate-y-1`}>
+      {popular && (
+        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-yellow-400 to-amber-500 text-gray-900 text-xs font-bold px-4 py-1 rounded-full">
+          ⭐ MOST POPULAR
+        </div>
+      )}
+      <div className="text-center mb-6">
+        <h3 className="text-2xl font-bold text-yellow-300">{name}</h3>
+        <p className="text-gray-400 text-sm mt-1">{description}</p>
+        <div className="mt-4">
+          <span className="text-4xl font-bold text-yellow-400">{price}</span>
+          <span className="text-gray-400 text-sm ml-1">{period}</span>
+        </div>
+      </div>
+      <div className="space-y-2 mb-6 max-h-64 overflow-y-auto">
+        {features.map((feature: string, i: number) => (
+          <div key={i} className="flex items-start gap-2 text-sm">
+            <span className="text-yellow-400 mt-0.5">✓</span>
+            <span className="text-gray-300">{feature}</span>
+          </div>
+        ))}
+      </div>
+      <Link href="/sign-up">
+        <Button className="w-full bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-600 hover:to-amber-600 text-gray-900 font-bold transition-all">
+          Get Started
+        </Button>
+      </Link>
+    </div>
+  );
+}
+
+function PricingCardPlatinum({ name, description, price, period, features, popular }: any) {
+  return (
+    <div className={`relative bg-gradient-to-br from-purple-900/40 to-indigo-900/40 border ${popular ? 'border-purple-400' : 'border-purple-600/30'} rounded-2xl p-6 shadow-xl shadow-purple-500/10 hover:shadow-2xl hover:shadow-purple-500/20 transition-all duration-300 hover:-translate-y-1`}>
+      {popular && (
+        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-purple-400 to-indigo-500 text-white text-xs font-bold px-4 py-1 rounded-full">
+          ELITE
+        </div>
+      )}
+      <div className="text-center mb-6">
+        <h3 className="text-2xl font-bold text-purple-300">{name}</h3>
+        <p className="text-gray-400 text-sm mt-1">{description}</p>
+        <div className="mt-4">
+          <span className="text-4xl font-bold text-purple-400">{price}</span>
+          <span className="text-gray-400 text-sm ml-1">{period}</span>
+        </div>
+      </div>
+      <div className="space-y-2 mb-6 max-h-64 overflow-y-auto">
+        {features.map((feature: string, i: number) => (
+          <div key={i} className="flex items-start gap-2 text-sm">
+            <span className="text-purple-400 mt-0.5">✓</span>
+            <span className="text-gray-300">{feature}</span>
+          </div>
+        ))}
+      </div>
+      <Link href="/sign-up">
+        <Button className="w-full bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white font-bold transition-all">
+          Get Started
+        </Button>
+      </Link>
     </div>
   );
 }
