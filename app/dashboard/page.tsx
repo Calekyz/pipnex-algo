@@ -10,17 +10,16 @@ export default async function DashboardPage() {
     const { userId } = await auth();
 
     if (!userId) {
-      return redirect('/sign-in');
+      redirect('/sign-in');
     }
 
-    // Try to find the user in your database
+    // Find user
     let user = await prisma.user.findUnique({
       where: { clerkId: userId },
     });
 
-    // If user doesn't exist, create them automatically
+    // If user doesn't exist, create them
     if (!user) {
-      // Fetch user details from Clerk
       const clerkUser = await fetch(`https://api.clerk.com/v1/users/${userId}`, {
         headers: {
           Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}`,
@@ -36,23 +35,22 @@ export default async function DashboardPage() {
       const email = clerkUserData.email_addresses?.[0]?.email_address || '';
       const name = `${clerkUserData.first_name || ''} ${clerkUserData.last_name || ''}`.trim() || 'User';
 
-      // Create user in your database
       user = await prisma.user.create({
         data: {
           clerkId: userId,
           email,
           name,
-          status: 'PENDING', // They haven't paid yet
+          status: 'PENDING',
         },
       });
     }
 
-    // Check user status
+    // Check status
     if (user.status === 'PENDING' || user.status === 'EXPIRED') {
-      return redirect('/sign-up');
+      redirect('/sign-up');
     }
 
-    // If active, show dashboard
+    // Dashboard
     return (
       <div className="min-h-screen bg-gray-50">
         <nav className="bg-white border-b border-gray-200">
@@ -80,17 +78,16 @@ export default async function DashboardPage() {
       </div>
     );
   } catch (error) {
-    console.error('Dashboard page error:', error);
-    // Fallback: show error but don't crash the whole app
+    console.error('Dashboard error:', error);
+    // Fallback – show error but don't crash
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="bg-red-50 border border-red-200 rounded-lg p-8 max-w-md text-center">
-          <h1 className="text-xl font-bold text-red-700 mb-2">⚠️ Dashboard Error</h1>
-          <p className="text-gray-700">We couldn't load your dashboard. Please try refreshing the page.</p>
-          <p className="text-sm text-gray-500 mt-2">If the problem persists, contact support.</p>
-          <Button onClick={() => window.location.reload()} className="mt-4">
-            Refresh
-          </Button>
+          <h1 className="text-xl font-bold text-red-700 mb-2">Unable to Load Dashboard</h1>
+          <p className="text-gray-700">There was an error loading your dashboard. Please refresh or try again later.</p>
+          <a href="/" className="inline-block mt-4 bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600">
+            Go to Home
+          </a>
         </div>
       </div>
     );
