@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { SignUp, useUser } from '@clerk/nextjs';
 import Image from 'next/image';
@@ -11,7 +11,6 @@ export default function SignUpPage() {
 
   useEffect(() => {
     if (isLoaded && isSignedIn && user) {
-      // After signing up, check user status via API
       fetch('/api/user/status')
         .then(res => res.json())
         .then(data => {
@@ -19,11 +18,8 @@ export default function SignUpPage() {
             router.push('/dashboard');
           }
           // If not ACTIVE, stay on sign-up page (to enter code)
-          // No redirect for PENDING or PENDING_VERIFICATION
         })
-        .catch(() => {
-          // If error, stay on page
-        });
+        .catch(() => {});
     }
   }, [isLoaded, isSignedIn, user, router]);
 
@@ -109,7 +105,7 @@ function CodeEntryForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-lg transition"
+        className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50"
       >
         {loading ? 'Verifying...' : 'Activate Account'}
       </button>
