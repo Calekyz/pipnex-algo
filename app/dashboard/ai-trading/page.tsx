@@ -1,8 +1,8 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+\import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function Page() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24">
       <h1 className="text-2xl font-bold text-gray-800">Coming Soon</h1>
       <Card>
         <CardContent className="py-12 text-center text-gray-500">
