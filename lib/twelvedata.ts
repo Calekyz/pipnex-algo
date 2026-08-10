@@ -54,7 +54,9 @@ export async function getTechnicalIndicators(symbol: string) {
   }
 }
 
+// ✅ UPDATED: All Forex Pairs + Metals + Commodities
 export const FOREX_PAIRS = [
+  // Major Pairs
   { label: 'EUR/USD', value: 'EUR/USD' },
   { label: 'GBP/USD', value: 'GBP/USD' },
   { label: 'USD/JPY', value: 'USD/JPY' },
@@ -62,7 +64,32 @@ export const FOREX_PAIRS = [
   { label: 'USD/CAD', value: 'USD/CAD' },
   { label: 'USD/CHF', value: 'USD/CHF' },
   { label: 'NZD/USD', value: 'NZD/USD' },
+  
+  // Cross Pairs
   { label: 'EUR/GBP', value: 'EUR/GBP' },
   { label: 'EUR/JPY', value: 'EUR/JPY' },
   { label: 'GBP/JPY', value: 'GBP/JPY' },
+  { label: 'AUD/JPY', value: 'AUD/JPY' },
+  { label: 'EUR/AUD', value: 'EUR/AUD' },
+  { label: 'GBP/AUD', value: 'GBP/AUD' },
+  { label: 'EUR/CAD', value: 'EUR/CAD' },
+  { label: 'GBP/CAD', value: 'GBP/CAD' },
+  
+  // Metals
+  { label: 'Gold (XAU/USD)', value: 'XAU/USD' },
+  { label: 'Silver (XAG/USD)', value: 'XAG/USD' },
+  { label: 'Platinum (XPT/USD)', value: 'XPT/USD' },
+  { label: 'Palladium (XPD/USD)', value: 'XPD/USD' },
+  
+  // Commodities
+  { label: 'Brent Oil', value: 'BZ=F' },
+  { label: 'WTI Oil', value: 'CL=F' },
+  { label: 'Natural Gas', value: 'NG=F' },
+];
+
+export const METAL_PAIRS = [
+  { label: 'Gold (XAU/USD)', value: 'XAU/USD' },
+  { label: 'Silver (XAG/USD)', value: 'XAG/USD' },
+  { label: 'Platinum (XPT/USD)', value: 'XPT/USD' },
+  { label: 'Palladium (XPD/USD)', value: 'XPD/USD' },
 ];
