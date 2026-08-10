@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String          @id @default(cuid())
+  clerkId       String          @unique
+  email         String          @unique
+  name          String?
+  status        UserStatus      @default(PENDING)
+  credits       Int             @default(0)
+  plan          String?         // "PRO", "GOLD", "PLATINUM"
+  planExpiry    DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  
+  licenses      UserLicense[]
+}
+
+model UserLicense {
+  id            String          @id @default(cuid())
+  userId        String
+  user          User            @relation(fields: [userId], references: [id])
+  code          String          @unique
+  plan          String          // "PRO", "GOLD", "PLATINUM"
+  duration      Int             // Duration in days
+  expiresAt     DateTime
+  redeemedAt    DateTime        @default(now())
+  isActive      Boolean         @default(true)
+  createdAt     DateTime        @default(now())
+}
+
+model LicenseCode {
+  id            String          @id @default(cuid())
+  code          String          @unique
+  plan          String          // "PRO", "GOLD", "PLATINUM"
+  duration      Int             // Duration in days
+  isUsed        Boolean         @default(false)
+  usedBy        String?
+  usedAt        DateTime?
+  createdBy     String?
+  createdAt     DateTime        @default(now())
+  expiresAt     DateTime?
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+}
