@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { UserButton, useUser } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
+import BottomNav from '@/components/dashboard/BottomNav';
 import { 
   Menu, 
-  X, 
   LayoutDashboard, 
   Wrench, 
   MessageSquare, 
@@ -19,8 +19,6 @@ import {
   CreditCard, 
   Phone, 
   Settings,
-  TrendingUp,
-  Sparkles
 } from 'lucide-react';
 
 interface MenuItem {
@@ -30,7 +28,7 @@ interface MenuItem {
 }
 
 const menuItems: MenuItem[] = [
-  { name: 'Overview', href: '/dashboard/overview', icon: <LayoutDashboard size={18} /> },
+  { name: 'Overview', href: '/dashboard', icon: <LayoutDashboard size={18} /> },
   { name: 'Quick Access Tools', href: '/dashboard', icon: <Wrench size={18} /> },
   { name: 'Prompt Trading', href: '/dashboard/prompt-trading', icon: <MessageSquare size={18} /> },
   { name: 'Auto Trading', href: '/dashboard/auto-trading', icon: <Zap size={18} /> },
@@ -56,7 +54,7 @@ export default function DashboardLayout({
   const closeSidebar = () => setSidebarOpen(false);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Mobile Sidebar Toggle */}
       <button
         onClick={toggleSidebar}
@@ -81,7 +79,7 @@ export default function DashboardLayout({
       >
         {/* Logo */}
         <div className="p-4 border-b border-gray-200">
-          <div className="flex items-center gap-2">
+          <Link href="/dashboard" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">P</span>
             </div>
@@ -89,7 +87,7 @@ export default function DashboardLayout({
               <span className="font-bold text-gray-800">PipnexAi</span>
               <span className="text-blue-600 font-bold"> Algo</span>
             </div>
-          </div>
+          </Link>
         </div>
 
         {/* User Info */}
@@ -108,7 +106,7 @@ export default function DashboardLayout({
         {/* Navigation */}
         <nav className="p-2 overflow-y-auto h-[calc(100vh-180px)]">
           {menuItems.map((item) => {
-            const isActive = pathname === item.href || (item.href !== '/dashboard/overview' && pathname?.startsWith(item.href));
+            const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname?.startsWith(item.href));
             return (
               <Link
                 key={item.name}
@@ -136,11 +134,14 @@ export default function DashboardLayout({
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 lg:ml-0">
+      <main className="flex-1 lg:ml-0 pb-20">
         <div className="p-4 lg:p-8 pt-20 lg:pt-8">
           {children}
         </div>
       </main>
+
+      {/* Bottom Navigation */}
+      <BottomNav />
     </div>
   );
 }
