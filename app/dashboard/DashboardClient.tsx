@@ -34,7 +34,7 @@ interface EventItem {
 }
 
 export default function DashboardClient({ pairs, initialCredits }: DashboardClientProps) {
-  const [selectedPair, setSelectedPair] = useState<string>(pairs[0].value);
+  const [selectedPair, setSelectedPair] = useState<string>(pairs[0]?.value || 'EUR/USD');
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState<any>(null);
   const [priceData, setPriceData] = useState<any>(null);
@@ -79,7 +79,10 @@ export default function DashboardClient({ pairs, initialCredits }: DashboardClie
         body: JSON.stringify({ symbol: selectedPair }),
       });
 
-      if (!analyzeRes.ok) throw new Error('Failed to generate analysis');
+      if (!analyzeRes.ok) {
+        const errData = await analyzeRes.json();
+        throw new Error(errData.error || 'Failed to generate analysis');
+      }
 
       const result = await analyzeRes.json();
       setAnalysis(result);
