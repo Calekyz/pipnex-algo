@@ -44,7 +44,7 @@ export default async function MainDashboardPage() {
     <div className="space-y-6 pb-24">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-800">Quick Access Tools</h1>
+        <h1 className="text-2xl font-bold text-gray-800">Main Dashboard</h1>
         <p className="text-gray-500 text-sm">
           Welcome to PipnexAi Algo — Your all-in-one AI trading intelligence platform
         </p>
