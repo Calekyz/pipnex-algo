@@ -1,9 +1,26 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 
-export default function Home() {
+export default function HomePage() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -14,7 +31,7 @@ export default function Home() {
             alt="Forex Trading Background"
             fill
             className="object-cover opacity-20"
-            priority
+            priority={false}
           />
           <div className="absolute inset-0 bg-gradient-to-br from-gray-900/90 via-gray-800/80 to-gray-900/90"></div>
         </div>
@@ -167,7 +184,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Pricing Section with "Sign Up & Enter Code" */}
+      {/* Pricing Section */}
       <section className="py-20 bg-gray-800 border-t border-gray-700">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl md:text-4xl font-bold text-white text-center mb-4">
