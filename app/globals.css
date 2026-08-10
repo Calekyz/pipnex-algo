@@ -1,13 +1,35 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-rgb: 255, 255, 255;
+/* Fix Clerk Sign-Up component width on mobile */
+.clerk-signup-root {
+  width: 100% !important;
+  max-width: 100% !important;
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: rgb(var(--background-rgb));
+.cl-card {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.cl-internal-1dauvpw {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Fix input fields on mobile */
+.cl-formFieldInput {
+  font-size: 16px !important;
+  padding: 12px !important;
+}
+
+/* Make buttons full width on mobile */
+.cl-button {
+  width: 100% !important;
+}
+
+@media (max-width: 480px) {
+  .cl-card {
+    padding: 16px !important;
+  }
+  .cl-header {
+    font-size: 20px !important;
+  }
 }
