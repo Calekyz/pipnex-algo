@@ -7,8 +7,8 @@ import { UserButton, useUser } from '@clerk/nextjs';
 import BottomNav from '@/components/dashboard/BottomNav';
 import { 
   Menu, 
+  X,
   LayoutDashboard, 
-  Wrench, 
   MessageSquare, 
   Zap, 
   Bot, 
@@ -44,7 +44,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true); // Default open on desktop
   const pathname = usePathname();
   const { user } = useUser();
 
@@ -53,15 +53,16 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Mobile Sidebar Toggle */}
+      {/* Toggle Button - Always Visible */}
       <button
         onClick={toggleSidebar}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-md"
+        className="fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+        aria-label="Toggle sidebar"
       >
-        <Menu size={24} />
+        {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
 
-      {/* Sidebar Overlay */}
+      {/* Sidebar Overlay (for mobile) */}
       {sidebarOpen && (
         <div
           className="lg:hidden fixed inset-0 bg-black/50 z-40"
@@ -71,12 +72,12 @@ export default function DashboardLayout({
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:sticky top-0 z-40 h-screen w-64 bg-white border-r border-gray-200 transition-transform duration-300 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        className={`fixed top-0 left-0 z-40 h-screen w-64 bg-white border-r border-gray-200 transition-transform duration-300 ease-in-out ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Logo */}
-        <div className="p-4 border-b border-gray-200">
+        <div className="p-4 border-b border-gray-200 mt-12">
           <Link href="/dashboard" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">P</span>
@@ -132,8 +133,12 @@ export default function DashboardLayout({
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 lg:ml-0 pb-20">
-        <div className="p-4 lg:p-8 pt-20 lg:pt-8">
+      <main
+        className={`flex-1 transition-all duration-300 ease-in-out ${
+          sidebarOpen ? 'lg:ml-64' : 'lg:ml-0'
+        }`}
+      >
+        <div className="p-4 lg:p-8 pt-20 lg:pt-8 pb-24">
           {children}
         </div>
       </main>
