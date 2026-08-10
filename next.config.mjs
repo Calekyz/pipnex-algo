@@ -12,7 +12,8 @@ const nextConfig = {
       },
     ],
   },
-  serverExternalPackages: ['@prisma/client', 'prisma'],
+  // Allow Node.js built-in modules in server-side code
+  serverExternalPackages: ['fs', 'path', 'prisma', '@prisma/client'],
 };
 
 export default nextConfig;
