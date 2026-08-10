@@ -167,7 +167,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Pricing Section */}
+      {/* Pricing Section with "Sign Up & Enter Code" */}
       <section className="py-20 bg-gray-800 border-t border-gray-700">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl md:text-4xl font-bold text-white text-center mb-4">
