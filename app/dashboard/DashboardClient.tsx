@@ -69,7 +69,10 @@ export default function DashboardClient({ pairs, initialCredits }: DashboardClie
 
     try {
       const marketRes = await fetch(`/api/market-data?symbol=${encodeURIComponent(selectedPair)}`);
-      if (!marketRes.ok) throw new Error('Failed to fetch market data');
+      if (!marketRes.ok) {
+        const errData = await marketRes.json();
+        throw new Error(errData.error || 'Failed to fetch market data');
+      }
       const marketData = await marketRes.json();
       setPriceData(marketData.price);
 
@@ -95,6 +98,7 @@ export default function DashboardClient({ pairs, initialCredits }: DashboardClie
 
   return (
     <div className="space-y-6">
+      {/* AI Analysis Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1">
           <Card>
@@ -108,11 +112,34 @@ export default function DashboardClient({ pairs, initialCredits }: DashboardClie
                 onChange={(e) => setSelectedPair(e.target.value)}
                 disabled={loading}
               >
-                {pairs.map((pair) => (
-                  <option key={pair.value} value={pair.value}>
-                    {pair.label}
-                  </option>
-                ))}
+                <optgroup label="Major Pairs">
+                  {pairs.slice(0, 7).map((pair) => (
+                    <option key={pair.value} value={pair.value}>
+                      {pair.label}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Cross Pairs">
+                  {pairs.slice(7, 14).map((pair) => (
+                    <option key={pair.value} value={pair.value}>
+                      {pair.label}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Metals">
+                  {pairs.slice(14, 18).map((pair) => (
+                    <option key={pair.value} value={pair.value}>
+                      {pair.label}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Commodities">
+                  {pairs.slice(18, 21).map((pair) => (
+                    <option key={pair.value} value={pair.value}>
+                      {pair.label}
+                    </option>
+                  ))}
+                </optgroup>
               </select>
 
               <Button
@@ -125,7 +152,7 @@ export default function DashboardClient({ pairs, initialCredits }: DashboardClie
 
               {initialCredits <= 0 && (
                 <p className="text-sm text-red-500 text-center">
-                  You've used all your credits. Please contact support.
+                  You've used all your credits. Please upgrade your subscription.
                 </p>
               )}
 
@@ -133,10 +160,14 @@ export default function DashboardClient({ pairs, initialCredits }: DashboardClie
                 <div className="mt-4 p-3 bg-gray-50 rounded-md">
                   <div className="text-sm text-gray-600">Current Price</div>
                   <div className="text-2xl font-bold">
-                    {priceData.price || 'N/A'}
+                    {priceData.price || 'Loading...'}
                   </div>
-                  <div className={`text-sm ${parseFloat(priceData?.change || '0') >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                    {priceData?.change || 'N/A'}%
+                  <div className={`text-sm ${
+                    parseFloat(priceData?.change || '0') >= 0 
+                      ? 'text-green-500' 
+                      : 'text-red-500'
+                  }`}>
+                    {priceData?.change ? priceData.change + '%' : 'N/A'}
                   </div>
                 </div>
               )}
@@ -168,7 +199,11 @@ export default function DashboardClient({ pairs, initialCredits }: DashboardClie
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-3 bg-gray-50 rounded-md">
                       <div className="text-sm text-gray-600">Trend</div>
-                      <div className={`font-bold text-lg ${analysis.trend === 'Bullish' ? 'text-green-600' : analysis.trend === 'Bearish' ? 'text-red-600' : 'text-yellow-600'}`}>
+                      <div className={`font-bold text-lg ${
+                        analysis.trend === 'Bullish' ? 'text-green-600' :
+                        analysis.trend === 'Bearish' ? 'text-red-600' :
+                        'text-yellow-600'
+                      }`}>
                         {analysis.trend}
                       </div>
                     </div>
@@ -221,6 +256,7 @@ export default function DashboardClient({ pairs, initialCredits }: DashboardClie
         </div>
       </div>
 
+      {/* News & Events */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
@@ -281,7 +317,9 @@ export default function DashboardClient({ pairs, initialCredits }: DashboardClie
                         <h4 className="text-sm font-medium">{event.event}</h4>
                       </div>
                       <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        event.impact === 'High' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
+                        event.impact === 'High' ? 'bg-red-100 text-red-700' :
+                        event.impact === 'Medium' ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-gray-100 text-gray-700'
                       }`}>
                         {event.impact}
                       </span>
