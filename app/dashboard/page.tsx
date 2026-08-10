@@ -5,6 +5,9 @@ import { FOREX_PAIRS } from '@/lib/twelvedata';
 import { Button } from '@/components/ui/button';
 import DashboardClient from './DashboardClient';
 
+// ✅ Force dynamic rendering – this page uses auth() which relies on headers
+export const dynamic = 'force-dynamic';
+
 export default async function DashboardPage() {
   try {
     const { userId } = await auth();
