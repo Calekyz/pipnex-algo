@@ -42,10 +42,6 @@ export default async function DashboardPage() {
   if (user.status === 'PENDING' || user.status === 'EXPIRED') {
     redirect('/sign-up');
   }
-  // PENDING_VERIFICATION → show payment page (if using pipnex-algo1)
-  if (user.status === 'PENDING_VERIFICATION') {
-    redirect('/payment');
-  }
 
   // ---- ONLY ACTIVE USERS SEE THE DASHBOARD ----
   return (
