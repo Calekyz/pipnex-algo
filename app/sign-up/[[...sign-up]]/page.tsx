@@ -11,12 +11,14 @@ export default function SignUpPage() {
 
   useEffect(() => {
     if (isLoaded && isSignedIn && user) {
+      // Check if user is already ACTIVE
       fetch('/api/user/status')
         .then(res => res.json())
         .then(data => {
           if (data.status === 'ACTIVE') {
             router.push('/dashboard');
           }
+          // If not ACTIVE, stay on this page to enter code
         })
         .catch(() => {});
     }
@@ -34,21 +36,21 @@ export default function SignUpPage() {
             className="rounded-xl"
           />
         </div>
-        <h2 className="text-2xl font-bold text-white text-center mb-2">Create Your Account</h2>
+        <h2 className="text-2xl font-bold text-white text-center mb-2">
+          {isSignedIn ? 'Activate Your Account' : 'Create Your Account'}
+        </h2>
         <p className="text-gray-400 text-center text-sm mb-6">
-          {isSignedIn ? 'Enter your activation code below' : 'Sign up to start your AI trading journey'}
+          {isSignedIn
+            ? 'Enter your activation code to unlock your subscription.'
+            : 'Sign up to start your AI trading journey'}
         </p>
+
         {!isSignedIn ? (
           <div className="w-full overflow-hidden">
             <SignUp routing="hash" signInUrl="/sign-in" />
           </div>
         ) : (
-          <div className="space-y-4">
-            <p className="text-gray-300 text-sm text-center">
-              Your account is pending activation. Please enter your code below.
-            </p>
-            <CodeEntryForm />
-          </div>
+          <CodeEntryForm />
         )}
       </div>
     </div>
@@ -110,6 +112,9 @@ function CodeEntryForm() {
       >
         {loading ? 'Verifying...' : 'Activate Account'}
       </button>
+      <p className="text-xs text-gray-500 text-center">
+        Don't have a code? Contact support at <span className="text-blue-400">support@pipnexai.com</span>
+      </p>
     </form>
   );
 }
