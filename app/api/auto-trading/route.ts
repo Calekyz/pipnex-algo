@@ -75,40 +75,47 @@ export async function GET(req: NextRequest) {
       },
     ];
 
-    // Upsert each bot (create if not exists)
+    // Use findFirst + create/update to avoid duplicates
     for (const botData of EA_BOTS) {
-      await prisma.bot.upsert({
+      const existing = await prisma.bot.findFirst({
         where: {
-          // We need a unique constraint on (name, userId) for this to work
-          // The constraint we added earlier: unique_bot_name_user
-          name_userId: {
-            name: botData.name,
-            userId: null, // global bot
-          },
-        },
-        update: {
-          description: botData.description,
-          strategy: botData.strategy,
-          riskLevel: botData.riskLevel,
-          performance: botData.performance,
-          icon: botData.icon,
-          color: botData.color,
-        },
-        create: {
           name: botData.name,
-          description: botData.description,
-          type: botData.type,
-          strategy: botData.strategy,
-          riskLevel: botData.riskLevel,
-          performance: botData.performance,
-          icon: botData.icon,
-          color: botData.color,
-          isActive: true,
-          isRunning: false,
-          isArchived: false,
-          userId: null,
+          userId: null, // global bot
         },
       });
+
+      if (existing) {
+        // Update existing bot
+        await prisma.bot.update({
+          where: { id: existing.id },
+          data: {
+            description: botData.description,
+            strategy: botData.strategy,
+            riskLevel: botData.riskLevel,
+            performance: botData.performance,
+            icon: botData.icon,
+            color: botData.color,
+          },
+        });
+      } else {
+        // Create new bot
+        await prisma.bot.create({
+          data: {
+            name: botData.name,
+            description: botData.description,
+            type: botData.type,
+            strategy: botData.strategy,
+            riskLevel: botData.riskLevel,
+            performance: botData.performance,
+            icon: botData.icon,
+            color: botData.color,
+            isActive: true,
+            isRunning: false,
+            isArchived: false,
+            userId: null,
+          },
+        });
+      }
     }
 
     // Fetch all bots (global + user's)
