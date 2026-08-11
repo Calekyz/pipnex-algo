@@ -44,7 +44,8 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [sidebarOpen, setSidebarOpen] = useState(true); // Default open on desktop
+  // ✅ Sidebar is CLOSED by default (false)
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
   const { user } = useUser();
 
