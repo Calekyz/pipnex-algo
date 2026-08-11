@@ -27,7 +27,7 @@ model User {
   licenses      UserLicense[]
   payments      PaymentProof[]
   supportTickets SupportTicket[]
-  bots          Bot[]           // user-created bots (if any)
+  bots          Bot[]
   brokerAccounts BrokerAccount[]
   eaInstances   EAInstance[]
 }
@@ -117,12 +117,13 @@ model Bot {
   type          String   // "EA", "AI", "SCALPER", "SWING", "GRID", "MARTINGALE"
   strategy      String
   riskLevel     String   // "LOW", "MODERATE", "HIGH"
-  performance   String   // e.g., "+156% in 2024"
+  performance   String   // e.g., "+156% Backtested in 2026"
   icon          String   @default("🤖")
   color         String   @default("blue")
   isActive      Boolean  @default(true)
   isRunning     Boolean  @default(false)
-  userId        String?
+  isArchived    Boolean  @default(false)   // 👈 Soft delete / archive
+  userId        String?  // null = global bot, userId = user-owned bot
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -141,7 +142,7 @@ model BrokerAccount {
   user          User            @relation(fields: [userId], references: [id])
   
   name          String          // User-defined name
-  broker        BrokerType      // IC_MARKETS, VALETAX, FXPRO, PEPPERSTONE, HFM, EXNESS
+  broker        BrokerType      // IC_MARKETS, VALETAX, EXNESS, JUST_MARKET, HFM, FXPRO, PEPPERSTONE
   accountId     String          // MT5 Login
   password      String          // Encrypted
   server        String?
@@ -198,7 +199,7 @@ model EAInstance {
   profit        Float           @default(0)
   
   // Configuration
-  config        Json?           // EA-specific settings (e.g., initialLot, martingaleMultiplier)
+  config        Json?           // EA-specific settings
   
   lastHeartbeat DateTime        @default(now())
   createdAt     DateTime        @default(now())
@@ -235,10 +236,11 @@ enum SenderType {
 enum BrokerType {
   IC_MARKETS
   VALETAX
+  EXNESS
+  JUST_MARKET
+  HFM
   FXPRO
   PEPPERSTONE
-  HFM
-  EXNESS
 }
 
 enum AccountStatus {
