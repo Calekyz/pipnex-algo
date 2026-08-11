@@ -10,12 +10,34 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Ensure Zillionaire EA exists in bot list
+    const existingBot = await prisma.bot.findFirst({
+      where: { name: 'Zillionaire EA' },
+    });
+
+    if (!existingBot) {
+      await prisma.bot.create({
+        data: {
+          name: 'Zillionaire EA',
+          description: 'Advanced Martingale EA with sequence trading, recovery mode, and trailing stops. Trades in sequences of 3 trades with martingale progression.',
+          type: 'EA',
+          strategy: 'Martingale Sequence',
+          riskLevel: 'HIGH',
+          performance: '+156% in 2024 (Backtested)',
+          icon: '💰',
+          color: 'gold',
+          isActive: true,
+          isRunning: false,
+        },
+      });
+    }
+
     // Get all bots (global and user-specific)
     const bots = await prisma.bot.findMany({
       where: {
         OR: [
-          { userId: null }, // Global bots
-          { userId: userId }, // User's own bots
+          { userId: null },
+          { userId: userId },
         ],
       },
       orderBy: {
