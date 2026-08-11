@@ -35,8 +35,6 @@ export async function POST(req: NextRequest) {
 
     // Delete user and all related data
     await prisma.$transaction([
-      // Delete PaymentProof records
-      prisma.paymentProof.deleteMany({ where: { userId: targetUserId } }),
       // Delete UserLicense records
       prisma.userLicense.deleteMany({ where: { userId: targetUserId } }),
       // Finally delete the User
