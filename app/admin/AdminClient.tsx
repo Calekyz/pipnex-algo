@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatDate } from '@/lib/utils';
 
-// ✅ Updated User interface – planExpiry is Date, not string
+// ✅ User interface – includes supportTickets (optional)
 interface User {
   id: string;
   clerkId: string;
@@ -16,13 +16,26 @@ interface User {
   credits: number;
   planExpiry: Date | null;
   createdAt: Date;
-  supportTickets: any[];
+  supportTickets?: any[]; // Optional, may not be included in all queries
 }
 
+// ✅ Ticket interface – user does NOT need supportTickets
 interface Ticket {
   id: string;
-  user: User;
-  messages: any[];
+  user: {
+    id: string;
+    email: string;
+    name: string | null;
+    // Only fields needed for display
+  };
+  messages: {
+    id: string;
+    sender: string;
+    message: string;
+    isRead: boolean;
+    createdAt: Date;
+  }[];
+  status: string;
   createdAt: Date;
 }
 
