@@ -78,13 +78,13 @@ export async function GET(req: NextRequest) {
     ];
 
     // ============================================
-    // Ensure Each Global Bot Exists in Database
+    // Ensure Each Global Bot Exists
     // ============================================
     for (const botData of EA_BOTS) {
       const existingBot = await prisma.bot.findFirst({
         where: {
           name: botData.name,
-          userId: null, // Only check global bots
+          userId: null,
         },
       });
 
@@ -102,12 +102,11 @@ export async function GET(req: NextRequest) {
             isActive: true,
             isRunning: false,
             isArchived: false,
-            userId: null, // Global bot
+            userId: null,
           },
         });
         console.log(`✅ Global bot added: ${botData.name}`);
       } else {
-        // Update existing global bot with latest data
         await prisma.bot.update({
           where: { id: existingBot.id },
           data: {
@@ -128,8 +127,8 @@ export async function GET(req: NextRequest) {
     // ============================================
     const where: any = {
       OR: [
-        { userId: null },      // Global bots (available to all users)
-        { userId: user.id },   // User's custom bots
+        { userId: null },
+        { userId: user.id },
       ],
     };
 
@@ -147,6 +146,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ bots });
   } catch (error: any) {
     console.error('Get bots error:', error);
+    // Always return a JSON response to avoid frontend parsing errors
     return NextResponse.json(
       { error: error.message || 'Failed to fetch bots' },
       { status: 500 }
