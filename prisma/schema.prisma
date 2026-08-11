@@ -28,10 +28,12 @@ model User {
   payments      PaymentProof[]
   supportTickets SupportTicket[]
   bots          Bot[]
+  brokerAccounts BrokerAccount[]
+  eaInstances   EAInstance[]
 }
 
 // ============================================
-// LICENSE SYSTEM (for pipnex-algo)
+// LICENSE SYSTEM
 // ============================================
 
 model UserLicense {
@@ -61,7 +63,7 @@ model LicenseCode {
 }
 
 // ============================================
-// PAYMENT SYSTEM (for pipnex-algo1)
+// PAYMENT SYSTEM
 // ============================================
 
 model PaymentProof {
@@ -70,11 +72,11 @@ model PaymentProof {
   user          User         @relation(fields: [userId], references: [id])
   method        String       // "MPESA" or "CRYPTO"
   amount        Int          // Amount in KES or USD
-  requestedPlan String?      // "PRO", "GOLD", "PLATINUM"
-  reference     String?      // M-Pesa Code or TX Hash
-  screenshotUrl String?      // URL to uploaded image
+  requestedPlan String?
+  reference     String?
+  screenshotUrl String?
   status        ProofStatus  @default(SUBMITTED)
-  verifiedBy    String?      // Admin email
+  verifiedBy    String?
   createdAt     DateTime     @default(now())
   verifiedAt    DateTime?
 }
@@ -91,7 +93,6 @@ model SupportTicket {
   status    TicketStatus    @default(OPEN)
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
-
   messages  SupportMessage[]
 }
 
@@ -125,8 +126,77 @@ model Bot {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  // Relations
   user          User?    @relation(fields: [userId], references: [id])
+}
+
+// ============================================
+// BROKER ACCOUNTS (Client Owned)
+// ============================================
+
+model BrokerAccount {
+  id            String          @id @default(cuid())
+  userId        String
+  user          User            @relation(fields: [userId], references: [id])
+  
+  name          String          // User-defined name
+  broker        BrokerType      // IC_MARKETS, VALETAX, FXPRO, PEPPERSTONE, HFM, EXNESS
+  accountId     String          // MT5 Login
+  password      String          // Encrypted
+  server        String?
+  
+  // API credentials (if any)
+  apiToken      String?
+  apiHost       String?
+  
+  isConnected   Boolean         @default(false)
+  lastConnected DateTime?
+  status        AccountStatus   @default(INACTIVE)
+  
+  enabled       Boolean         @default(true)
+  maxLotSize    Float?
+  riskPerTrade  Float?
+  
+  totalTrades   Int             @default(0)
+  totalProfit   Float           @default(0)
+  winRate       Float           @default(0)
+  
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  
+  @@unique([userId, accountId, broker])
+}
+
+// ============================================
+// EA INSTANCES (Running on Trading Engine)
+// ============================================
+
+model EAInstance {
+  id            String          @id @default(cuid())
+  userId        String
+  user          User            @relation(fields: [userId], references: [id])
+  brokerAccountId String
+  brokerAccount BrokerAccount   @relation(fields: [brokerAccountId], references: [id])
+  
+  botId         String
+  bot           Bot             @relation(fields: [botId], references: [id])
+  
+  status        EAStatus        @default(REGISTERED)
+  startedAt     DateTime?
+  stoppedAt     DateTime?
+  
+  // Live metrics
+  balance       Float           @default(0)
+  equity        Float           @default(0)
+  openPositions Int             @default(0)
+  totalTrades   Int             @default(0)
+  profit        Float           @default(0)
+  
+  // Configuration
+  config        Json?           // EA-specific settings
+  
+  lastHeartbeat DateTime        @default(now())
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 }
 
 // ============================================
@@ -135,7 +205,7 @@ model Bot {
 
 enum UserStatus {
   PENDING
-  PENDING_VERIFICATION   // For pipnex-algo1
+  PENDING_VERIFICATION
   ACTIVE
   EXPIRED
 }
@@ -154,4 +224,30 @@ enum TicketStatus {
 enum SenderType {
   USER
   ADMIN
+}
+
+enum BrokerType {
+  IC_MARKETS
+  VALETAX
+  FXPRO
+  PEPPERSTONE
+  HFM
+  EXNESS
+}
+
+enum AccountStatus {
+  INACTIVE
+  ACTIVE
+  CONNECTED
+  DISCONNECTED
+  ERROR
+}
+
+enum EAStatus {
+  REGISTERED
+  ONLINE
+  RUNNING
+  PAUSED
+  STOPPED
+  ERROR
 }
