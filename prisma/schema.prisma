@@ -27,7 +27,7 @@ model User {
   licenses      UserLicense[]
   payments      PaymentProof[]
   supportTickets SupportTicket[]
-  bots          Bot[]
+  bots          Bot[]           // user-created bots (if any)
   brokerAccounts BrokerAccount[]
   eaInstances   EAInstance[]
 }
@@ -126,7 +126,9 @@ model Bot {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  // Relations
   user          User?    @relation(fields: [userId], references: [id])
+  eaInstances   EAInstance[]
 }
 
 // ============================================
@@ -162,6 +164,9 @@ model BrokerAccount {
   
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
+
+  // Relations
+  eaInstances   EAInstance[]
   
   @@unique([userId, accountId, broker])
 }
@@ -174,6 +179,7 @@ model EAInstance {
   id            String          @id @default(cuid())
   userId        String
   user          User            @relation(fields: [userId], references: [id])
+  
   brokerAccountId String
   brokerAccount BrokerAccount   @relation(fields: [brokerAccountId], references: [id])
   
@@ -192,7 +198,7 @@ model EAInstance {
   profit        Float           @default(0)
   
   // Configuration
-  config        Json?           // EA-specific settings
+  config        Json?           // EA-specific settings (e.g., initialLot, martingaleMultiplier)
   
   lastHeartbeat DateTime        @default(now())
   createdAt     DateTime        @default(now())
