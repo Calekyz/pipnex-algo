@@ -7,6 +7,7 @@ import { formatDate } from '@/lib/utils';
 
 interface User {
   id: string;
+  clerkId: string;
   email: string;
   name: string | null;
   status: string;
@@ -19,15 +20,44 @@ interface AdminClientProps {
   users: User[];
 }
 
-export default function AdminClient({ users }: AdminClientProps) {
+export default function AdminClient({ users: initialUsers }: AdminClientProps) {
+  const [users, setUsers] = useState(initialUsers);
   const [filter, setFilter] = useState('ALL');
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const filteredUsers = filter === 'ALL' ? users : users.filter(u => u.status === filter);
+
+  const handleDelete = async (userId: string, email: string) => {
+    if (!confirm(`Are you sure you want to delete user "${email}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    setDeleting(userId);
+    try {
+      const res = await fetch('/api/admin/delete-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+
+      if (res.ok) {
+        setUsers(users.filter(u => u.id !== userId));
+        alert('User deleted successfully!');
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to delete user');
+      }
+    } catch (err) {
+      alert('Something went wrong');
+    } finally {
+      setDeleting(null);
+    }
+  };
 
   return (
     <div>
       {/* Filter buttons */}
-      <div className="flex gap-2 mb-4">
+      <div className="flex flex-wrap gap-2 mb-4">
         <Button
           variant={filter === 'ALL' ? 'default' : 'outline'}
           onClick={() => setFilter('ALL')}
@@ -69,11 +99,21 @@ export default function AdminClient({ users }: AdminClientProps) {
           {filteredUsers.map((user) => (
             <Card key={user.id}>
               <CardHeader>
-                <CardTitle className="text-lg">
-                  {user.name || user.email}
-                  <span className="text-sm font-normal text-gray-500 ml-4">
-                    {user.email}
-                  </span>
+                <CardTitle className="text-lg flex justify-between items-start">
+                  <div>
+                    {user.name || user.email}
+                    <span className="text-sm font-normal text-gray-500 ml-4">
+                      {user.email}
+                    </span>
+                  </div>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleDelete(user.id, user.email)}
+                    disabled={deleting === user.id}
+                  >
+                    {deleting === user.id ? 'Deleting...' : '🗑 Delete'}
+                  </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent>
