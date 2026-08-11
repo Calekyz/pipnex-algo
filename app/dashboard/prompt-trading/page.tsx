@@ -5,7 +5,7 @@ import { useUser } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Loader2, Plus, Play, Square, Bot, Wallet, AlertCircle } from 'lucide-react';
+import { Loader2, Plus, Play, Square, Bot, Wallet, AlertCircle, RefreshCw } from 'lucide-react';
 
 interface Bot {
   id: string;
@@ -26,6 +26,17 @@ interface BrokerAccount {
   balance?: number;
 }
 
+// ✅ All brokers supported by the trading engine
+const SUPPORTED_BROKERS = [
+  'IC_MARKETS',
+  'VALETAX',
+  'EXNESS',
+  'JUST_MARKET',
+  'HFM',
+  'FXPRO',
+  'PEPPERSTONE',
+];
+
 export default function PromptTradingPage() {
   const { user } = useUser();
   const [bots, setBots] = useState<Bot[]>([]);
@@ -36,6 +47,7 @@ export default function PromptTradingPage() {
   const [isRunning, setIsRunning] = useState(false);
   const [showAddAccount, setShowAddAccount] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [testingConnection, setTestingConnection] = useState<string | null>(null);
 
   const [newAccount, setNewAccount] = useState({
     name: '',
@@ -77,6 +89,29 @@ export default function PromptTradingPage() {
     }
   };
 
+  const testConnection = async (accountId: string) => {
+    setTestingConnection(accountId);
+    setError(null);
+    try {
+      const res = await fetch('/api/broker-accounts/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accountId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        fetchAccounts(); // refresh status
+        alert('✅ Connection successful!');
+      } else {
+        setError(data.error || 'Connection failed');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Something went wrong');
+    } finally {
+      setTestingConnection(null);
+    }
+  };
+
   const handleAddAccount = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -93,6 +128,11 @@ export default function PromptTradingPage() {
         setShowAddAccount(false);
         setNewAccount({ name: '', broker: 'IC_MARKETS', accountId: '', password: '', server: '' });
         fetchAccounts();
+        // Test connection after adding
+        const data = await res.json();
+        if (data.account) {
+          await testConnection(data.account.id);
+        }
       } else {
         const data = await res.json();
         setError(data.error || 'Failed to add account');
@@ -226,14 +266,28 @@ export default function PromptTradingPage() {
                 <option value="">Select an account...</option>
                 {accounts.map((acc) => (
                   <option key={acc.id} value={acc.id}>
-                    {acc.name} ({acc.broker}) - {acc.isConnected ? '✅ Connected' : '🔴 Disconnected'}
+                    {acc.name} ({acc.broker.replace('_', ' ')}) - {acc.isConnected ? '✅ Connected' : '🔴 Disconnected'}
                   </option>
                 ))}
               </select>
               {selectedAccountData && (
-                <p className="text-xs text-gray-500 mt-1">
-                  Balance: ${selectedAccountData.balance?.toFixed(2) || 'N/A'}
-                </p>
+                <div className="mt-2 flex items-center gap-3">
+                  <p className="text-xs text-gray-500">
+                    Balance: ${selectedAccountData.balance?.toFixed(2) || 'N/A'}
+                  </p>
+                  <button
+                    onClick={() => testConnection(selectedAccountData.id)}
+                    disabled={testingConnection === selectedAccountData.id}
+                    className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                  >
+                    {testingConnection === selectedAccountData.id ? (
+                      <Loader2 size={12} className="animate-spin" />
+                    ) : (
+                      <RefreshCw size={12} />
+                    )}
+                    Test Connection
+                  </button>
+                </div>
               )}
             </div>
 
@@ -294,7 +348,7 @@ export default function PromptTradingPage() {
                     <div>
                       <p className="font-medium text-gray-800">{acc.name}</p>
                       <p className="text-xs text-gray-500">
-                        {acc.broker} · Account: {acc.accountId}
+                        {acc.broker.replace('_', ' ')} · Account: {acc.accountId}
                       </p>
                       {acc.balance !== undefined && (
                         <p className="text-sm font-semibold text-gray-700">
@@ -342,12 +396,11 @@ export default function PromptTradingPage() {
                     onChange={(e) => setNewAccount({ ...newAccount, broker: e.target.value })}
                     className="w-full p-2 border border-gray-300 rounded-lg"
                   >
-                    <option value="IC_MARKETS">IC Markets</option>
-                    <option value="VALETAX">Valetax</option>
-                    <option value="FXPRO">FxPro</option>
-                    <option value="PEPPERSTONE">Pepperstone</option>
-                    <option value="HFM">HFM</option>
-                    <option value="EXNESS">Exness</option>
+                    {SUPPORTED_BROKERS.map((broker) => (
+                      <option key={broker} value={broker}>
+                        {broker.replace('_', ' ')}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>
