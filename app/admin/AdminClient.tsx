@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatDate } from '@/lib/utils';
 
+// ✅ Updated User interface – planExpiry is Date, not string
 interface User {
   id: string;
   clerkId: string;
@@ -13,7 +14,7 @@ interface User {
   status: string;
   plan: string | null;
   credits: number;
-  planExpiry: string | null;
+  planExpiry: Date | null;
   createdAt: Date;
   supportTickets: any[];
 }
@@ -159,7 +160,12 @@ export default function AdminClient({ users: initialUsers, openTickets }: AdminC
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
                   <div><span className="text-gray-500">Plan:</span> <span className="font-medium">{user.plan || 'Free'}</span></div>
                   <div><span className="text-gray-500">Credits:</span> <span className="font-medium">{user.credits}</span></div>
-                  <div><span className="text-gray-500">Expiry:</span> <span className="font-medium">{user.planExpiry ? formatDate(new Date(user.planExpiry)) : 'N/A'}</span></div>
+                  <div>
+                    <span className="text-gray-500">Expiry:</span>
+                    <span className="font-medium">
+                      {user.planExpiry ? formatDate(new Date(user.planExpiry)) : 'N/A'}
+                    </span>
+                  </div>
                   <div><span className="text-gray-500">Joined:</span> <span className="font-medium">{formatDate(user.createdAt)}</span></div>
                 </div>
 
