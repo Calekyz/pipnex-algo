@@ -21,9 +21,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // ============================================
-    // Define All 5 EA Bots (Global Bots)
-    // ============================================
+    // Define the 5 global bots
     const EA_BOTS = [
       {
         name: 'Zillionaire EA',
@@ -77,54 +75,43 @@ export async function GET(req: NextRequest) {
       },
     ];
 
-    // ============================================
-    // Ensure Each Global Bot Exists
-    // ============================================
+    // Upsert each bot (create if not exists)
     for (const botData of EA_BOTS) {
-      const existingBot = await prisma.bot.findFirst({
+      await prisma.bot.upsert({
         where: {
+          // We need a unique constraint on (name, userId) for this to work
+          // The constraint we added earlier: unique_bot_name_user
+          name_userId: {
+            name: botData.name,
+            userId: null, // global bot
+          },
+        },
+        update: {
+          description: botData.description,
+          strategy: botData.strategy,
+          riskLevel: botData.riskLevel,
+          performance: botData.performance,
+          icon: botData.icon,
+          color: botData.color,
+        },
+        create: {
           name: botData.name,
+          description: botData.description,
+          type: botData.type,
+          strategy: botData.strategy,
+          riskLevel: botData.riskLevel,
+          performance: botData.performance,
+          icon: botData.icon,
+          color: botData.color,
+          isActive: true,
+          isRunning: false,
+          isArchived: false,
           userId: null,
         },
       });
-
-      if (!existingBot) {
-        await prisma.bot.create({
-          data: {
-            name: botData.name,
-            description: botData.description,
-            type: botData.type,
-            strategy: botData.strategy,
-            riskLevel: botData.riskLevel,
-            performance: botData.performance,
-            icon: botData.icon,
-            color: botData.color,
-            isActive: true,
-            isRunning: false,
-            isArchived: false,
-            userId: null,
-          },
-        });
-        console.log(`✅ Global bot added: ${botData.name}`);
-      } else {
-        await prisma.bot.update({
-          where: { id: existingBot.id },
-          data: {
-            description: botData.description,
-            strategy: botData.strategy,
-            riskLevel: botData.riskLevel,
-            performance: botData.performance,
-            icon: botData.icon,
-            color: botData.color,
-          },
-        });
-        console.log(`🔄 Global bot updated: ${botData.name}`);
-      }
     }
 
-    // ============================================
-    // Fetch All Bots (Global + User-Specific)
-    // ============================================
+    // Fetch all bots (global + user's)
     const where: any = {
       OR: [
         { userId: null },
@@ -146,7 +133,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ bots });
   } catch (error: any) {
     console.error('Get bots error:', error);
-    // Always return a JSON response to avoid frontend parsing errors
     return NextResponse.json(
       { error: error.message || 'Failed to fetch bots' },
       { status: 500 }
