@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================
+   ROOT VARIABLES
+   ============================================ */
 :root {
   --foreground-rgb: 0, 0, 0;
   --background-rgb: 255, 255, 255;
@@ -12,6 +15,99 @@ body {
   background: rgb(var(--background-rgb));
 }
 
+/* ============================================
+   EMOJI SWITCH ANIMATION
+   👋 → 🤖 (4 second loop)
+   ============================================ */
+.animate-emoji-switch {
+  display: inline-block;
+  position: relative;
+  width: 44px;
+  height: 44px;
+  font-size: 36px;
+  line-height: 1;
+}
+
+.animate-emoji-switch .emoji-wave {
+  display: inline-block;
+  animation: waveAndFade 4s ease-in-out infinite;
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.animate-emoji-switch .emoji-ai {
+  display: inline-block;
+  animation: aiAppear 4s ease-in-out infinite;
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0;
+}
+
+@keyframes waveAndFade {
+  0% {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+  10% {
+    transform: rotate(20deg) scale(1.1);
+  }
+  20% {
+    transform: rotate(-10deg) scale(1);
+  }
+  30% {
+    transform: rotate(15deg) scale(1.05);
+  }
+  40% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+  60% {
+    opacity: 0;
+    transform: scale(0.7) rotate(-10deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.7) rotate(-10deg);
+  }
+}
+
+@keyframes aiAppear {
+  0% {
+    opacity: 0;
+    transform: scale(0.5) rotate(-10deg);
+  }
+  60% {
+    opacity: 0;
+    transform: scale(0.5) rotate(-10deg);
+  }
+  65% {
+    opacity: 1;
+    transform: scale(1.3) rotate(5deg);
+  }
+  75% {
+    transform: scale(0.85) rotate(-3deg);
+  }
+  85% {
+    transform: scale(1.05) rotate(2deg);
+  }
+  95% {
+    transform: scale(0.98) rotate(0deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+/* ============================================
+   CLERK AUTH FIXES (Mobile Responsive)
+   ============================================ */
+
 /* Fix Clerk Sign-Up component width on mobile */
 .clerk-signup-root {
   width: 100% !important;
@@ -21,6 +117,10 @@ body {
 .cl-card {
   width: 100% !important;
   max-width: 100% !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
 }
 
 .cl-internal-1dauvpw {
@@ -31,12 +131,91 @@ body {
 .cl-formFieldInput {
   font-size: 16px !important;
   padding: 12px !important;
+  background-color: rgb(55, 65, 81) !important;
+  border-color: rgb(75, 85, 99) !important;
+  color: white !important;
+  border-radius: 8px !important;
+}
+
+.cl-formFieldInput:focus {
+  border-color: rgb(59, 130, 246) !important;
+  ring-color: rgb(59, 130, 246) !important;
 }
 
 .cl-button {
   width: 100% !important;
+  background-color: rgb(59, 130, 246) !important;
+  color: white !important;
+  font-weight: 600 !important;
+  padding: 12px !important;
+  border-radius: 8px !important;
 }
 
+.cl-button:hover {
+  background-color: rgb(37, 99, 235) !important;
+}
+
+.cl-button-secondary {
+  background-color: transparent !important;
+  color: rgb(156, 163, 175) !important;
+}
+
+.cl-header {
+  color: white !important;
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  text-align: center !important;
+}
+
+.cl-subtitle {
+  color: rgb(156, 163, 175) !important;
+  text-align: center !important;
+  font-size: 14px !important;
+}
+
+.cl-footer {
+  color: rgb(156, 163, 175) !important;
+  text-align: center !important;
+}
+
+.cl-footer a {
+  color: rgb(96, 165, 250) !important;
+}
+
+.cl-footer a:hover {
+  color: rgb(147, 197, 253) !important;
+}
+
+.cl-divider {
+  border-color: rgb(55, 65, 81) !important;
+}
+
+.cl-internal-1f51yqg {
+  color: rgb(156, 163, 175) !important;
+}
+
+.cl-internal-1f51yqg a {
+  color: rgb(96, 165, 250) !important;
+}
+
+.cl-internal-1f51yqg a:hover {
+  color: rgb(147, 197, 253) !important;
+}
+
+/* Fix Clerk dark theme on sign-in/sign-up */
+.cl-internal-b3fm6y {
+  background: transparent !important;
+}
+
+.cl-internal-1m1f5s3 {
+  background: transparent !important;
+}
+
+.cl-internal-1wdnr5f {
+  background: transparent !important;
+}
+
+/* Full width on mobile */
 @media (max-width: 480px) {
   .cl-card {
     padding: 16px !important;
@@ -44,4 +223,228 @@ body {
   .cl-header {
     font-size: 20px !important;
   }
+  .cl-formFieldInput {
+    font-size: 16px !important;
+    padding: 10px !important;
+  }
+  .cl-button {
+    padding: 10px !important;
+  }
+}
+
+/* ============================================
+   SCROLLBAR STYLING
+   ============================================ */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Dark scrollbar for dark sections */
+.dark-scrollbar::-webkit-scrollbar-track {
+  background: #1f2937;
+}
+
+.dark-scrollbar::-webkit-scrollbar-thumb {
+  background: #4b5563;
+}
+
+.dark-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+.text-balance {
+  text-wrap: balance;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ============================================
+   GRADIENT TEXT UTILITY
+   ============================================ */
+.text-gradient-purple {
+  background: linear-gradient(135deg, #a855f7, #7c3aed, #6366f1);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-blue {
+  background: linear-gradient(135deg, #3b82f6, #2563eb, #1d4ed8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-gold {
+  background: linear-gradient(135deg, #f59e0b, #d97706, #b45309);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ============================================
+   ANIMATION UTILITIES
+   ============================================ */
+.animate-pulse-slow {
+  animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* ============================================
+   SELECT DROPDOWN STYLING
+   ============================================ */
+select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
+}
+
+/* ============================================
+   CARD HOVER EFFECTS
+   ============================================ */
+.card-hover {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+/* ============================================
+   LOADING SPINNER
+   ============================================ */
+.spinner {
+  border: 3px solid rgba(59, 130, 246, 0.1);
+  border-radius: 50%;
+  border-top: 3px solid #3b82f6;
+  width: 24px;
+  height: 24px;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* ============================================
+   RESPONSIVE FONT SIZES
+   ============================================ */
+@media (max-width: 480px) {
+  .text-responsive-hero {
+    font-size: 2rem;
+    line-height: 1.2;
+  }
+  .text-responsive-title {
+    font-size: 1.5rem;
+    line-height: 1.3;
+  }
+}
+
+/* ============================================
+   PRICING CARD GLOW EFFECTS
+   ============================================ */
+.glow-blue {
+  box-shadow: 0 0 30px rgba(59, 130, 246, 0.15);
+}
+
+.glow-yellow {
+  box-shadow: 0 0 30px rgba(234, 179, 8, 0.2);
+}
+
+.glow-purple {
+  box-shadow: 0 0 30px rgba(168, 85, 247, 0.15);
+}
+
+/* ============================================
+   CHAT BUBBLE STYLES
+   ============================================ */
+.chat-bubble-user {
+  background: #f3f4f6;
+  border-radius: 12px 12px 4px 12px;
+}
+
+.chat-bubble-admin {
+  background: #dbeafe;
+  border-radius: 12px 12px 12px 4px;
+}
+
+/* ============================================
+   STATUS INDICATOR
+   ============================================ */
+.status-online {
+  background-color: #22c55e;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
+}
+
+.status-offline {
+  background-color: #9ca3af;
+}
+
+.status-away {
+  background-color: #eab308;
+  box-shadow: 0 0 8px rgba(234, 179, 8, 0.4);
 }
