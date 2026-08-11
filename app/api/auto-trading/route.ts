@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const { userId } = await auth();
 
@@ -10,8 +10,19 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const url = new URL(req.url);
+    const includeArchived = url.searchParams.get('includeArchived') === 'true';
+
+    const user = await prisma.user.findUnique({
+      where: { clerkId: userId },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
     // ============================================
-    // Define All 5 EA Bots
+    // Define All 5 EA Bots (Global Bots)
     // ============================================
     const EA_BOTS = [
       {
@@ -67,11 +78,14 @@ export async function GET() {
     ];
 
     // ============================================
-    // Ensure Each Bot Exists in the Database
+    // Ensure Each Global Bot Exists in Database
     // ============================================
     for (const botData of EA_BOTS) {
       const existingBot = await prisma.bot.findFirst({
-        where: { name: botData.name },
+        where: {
+          name: botData.name,
+          userId: null, // Only check global bots
+        },
       });
 
       if (!existingBot) {
@@ -87,11 +101,13 @@ export async function GET() {
             color: botData.color,
             isActive: true,
             isRunning: false,
+            isArchived: false,
+            userId: null, // Global bot
           },
         });
-        console.log(`✅ Bot added: ${botData.name}`);
+        console.log(`✅ Global bot added: ${botData.name}`);
       } else {
-        // Update existing bot with latest data
+        // Update existing global bot with latest data
         await prisma.bot.update({
           where: { id: existingBot.id },
           data: {
@@ -103,20 +119,26 @@ export async function GET() {
             color: botData.color,
           },
         });
-        console.log(`🔄 Bot updated: ${botData.name}`);
+        console.log(`🔄 Global bot updated: ${botData.name}`);
       }
     }
 
     // ============================================
     // Fetch All Bots (Global + User-Specific)
     // ============================================
+    const where: any = {
+      OR: [
+        { userId: null },      // Global bots (available to all users)
+        { userId: user.id },   // User's custom bots
+      ],
+    };
+
+    if (!includeArchived) {
+      where.isArchived = false;
+    }
+
     const bots = await prisma.bot.findMany({
-      where: {
-        OR: [
-          { userId: null },      // Global bots (available to all users)
-          { userId: userId },    // User's custom bots
-        ],
-      },
+      where,
       orderBy: {
         createdAt: 'asc',
       },
