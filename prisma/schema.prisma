@@ -7,6 +7,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============================================
+// USER & AUTH
+// ============================================
+
 model User {
   id            String          @id @default(cuid())
   clerkId       String          @unique
@@ -18,9 +22,16 @@ model User {
   planExpiry    DateTime?
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
-  
+
+  // Relations
   licenses      UserLicense[]
+  payments      PaymentProof[]  // For pipnex-algo1 (optional)
+  supportTickets SupportTicket[]
 }
+
+// ============================================
+// LICENSE SYSTEM (for pipnex-algo)
+// ============================================
 
 model UserLicense {
   id            String          @id @default(cuid())
@@ -48,8 +59,74 @@ model LicenseCode {
   expiresAt     DateTime?
 }
 
+// ============================================
+// PAYMENT SYSTEM (for pipnex-algo1)
+// ============================================
+
+model PaymentProof {
+  id            String       @id @default(cuid())
+  userId        String
+  user          User         @relation(fields: [userId], references: [id])
+  method        String       // "MPESA" or "CRYPTO"
+  amount        Int          // Amount in KES or USD
+  requestedPlan String?      // "PRO", "GOLD", "PLATINUM"
+  reference     String?      // M-Pesa Code or TX Hash
+  screenshotUrl String?      // URL to uploaded image
+  status        ProofStatus  @default(SUBMITTED)
+  verifiedBy    String?      // Admin email
+  createdAt     DateTime     @default(now())
+  verifiedAt    DateTime?
+}
+
+// ============================================
+// SUPPORT SYSTEM
+// ============================================
+
+model SupportTicket {
+  id        String          @id @default(cuid())
+  userId    String
+  user      User            @relation(fields: [userId], references: [id])
+  subject   String
+  status    TicketStatus    @default(OPEN)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  messages  SupportMessage[]
+}
+
+model SupportMessage {
+  id         String        @id @default(cuid())
+  ticketId   String
+  ticket     SupportTicket @relation(fields: [ticketId], references: [id])
+  sender     SenderType
+  message    String
+  isRead     Boolean       @default(false)
+  createdAt  DateTime      @default(now())
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
 enum UserStatus {
   PENDING
+  PENDING_VERIFICATION   // For pipnex-algo1
   ACTIVE
   EXPIRED
+}
+
+enum ProofStatus {
+  SUBMITTED
+  VERIFIED
+  REJECTED
+}
+
+enum TicketStatus {
+  OPEN
+  CLOSED
+}
+
+enum SenderType {
+  USER
+  ADMIN
 }
