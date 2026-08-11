@@ -4,7 +4,6 @@ import { prisma } from '@/lib/db';
 import { Button } from '@/components/ui/button';
 import AdminClient from './AdminClient';
 
-// ✅ Force dynamic rendering – admin page uses auth()
 export const dynamic = 'force-dynamic';
 
 export default async function AdminPage() {
@@ -15,11 +14,9 @@ export default async function AdminPage() {
       redirect('/sign-in');
     }
 
-    // Check if user is admin
+    // Check admin
     const clerkResponse = await fetch(`https://api.clerk.com/v1/users/${userId}`, {
-      headers: {
-        Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}`,
-      },
+      headers: { Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}` },
     });
 
     if (!clerkResponse.ok) {
@@ -31,17 +28,13 @@ export default async function AdminPage() {
     const userEmail = clerkUser.email_addresses?.[0]?.email_address || '';
 
     const adminEmails = process.env.ADMIN_EMAILS?.split(',') || [];
-
     if (!adminEmails.includes(userEmail)) {
-      console.log(`User ${userEmail} is not admin. Redirecting to dashboard.`);
       redirect('/dashboard');
     }
 
-    // Get all users (for admin overview)
+    // Get all users
     const allUsers = await prisma.user.findMany({
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: { createdAt: 'desc' },
     });
 
     return (
@@ -65,7 +58,6 @@ export default async function AdminPage() {
     );
   } catch (error: any) {
     console.error('Admin page error:', error);
-    // Fallback – show error with details (remove after debugging)
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="bg-red-50 border border-red-200 rounded-lg p-8 max-w-2xl w-full text-center">
