@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useUser } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,12 +10,14 @@ import {
   Loader2, 
   Plus, 
   Trash2, 
-  Edit, 
-  Check, 
-  X, 
+  Archive, 
+  RotateCcw, 
+  Eye, 
+  EyeOff,
   Bot,
   ArrowLeft,
-  Save,
+  Check,
+  X,
   AlertCircle
 } from 'lucide-react';
 
@@ -30,6 +33,7 @@ interface Bot {
   color: string;
   isActive: boolean;
   isRunning: boolean;
+  isArchived: boolean;
   userId: string | null;
 }
 
@@ -40,11 +44,12 @@ const ICONS = ['🤖', '🧠', '⚡', '📈', '🎯', '🔥', '💎', '🚀'];
 
 export default function ManageBotsPage() {
   const router = useRouter();
+  const { user } = useUser();
   const [bots, setBots] = useState<Bot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [editingBot, setEditingBot] = useState<Bot | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -59,7 +64,8 @@ export default function ManageBotsPage() {
 
   const fetchBots = async () => {
     try {
-      const res = await fetch('/api/auto-trading');
+      const url = showArchived ? '/api/auto-trading?includeArchived=true' : '/api/auto-trading';
+      const res = await fetch(url);
       if (!res.ok) throw new Error('Failed to fetch bots');
       const data = await res.json();
       setBots(data.bots || []);
@@ -72,12 +78,11 @@ export default function ManageBotsPage() {
 
   useEffect(() => {
     fetchBots();
-  }, []);
+  }, [showArchived]);
 
   const handleAddBot = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       const res = await fetch('/api/auto-trading/add', {
         method: 'POST',
@@ -109,28 +114,53 @@ export default function ManageBotsPage() {
     }
   };
 
-  const handleRemoveBot = async (botId: string, botName: string) => {
-    if (!confirm(`Remove "${botName}" from your bots? This will not delete the bot template.`)) {
-      return;
+  const handleArchive = async (botId: string, botName: string) => {
+    if (!confirm(`Archive "${botName}"? It will be hidden from your main list. You can restore it later.`)) return;
+    try {
+      const res = await fetch('/api/bots/archive', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ botId }),
+      });
+      if (!res.ok) throw new Error('Failed to archive');
+      fetchBots();
+    } catch (err: any) {
+      alert(err.message || 'Failed to archive');
     }
+  };
 
+  const handleRestore = async (botId: string, botName: string) => {
+    if (!confirm(`Restore "${botName}" to your active list?`)) return;
+    try {
+      const res = await fetch('/api/bots/restore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ botId }),
+      });
+      if (!res.ok) throw new Error('Failed to restore');
+      fetchBots();
+    } catch (err: any) {
+      alert(err.message || 'Failed to restore');
+    }
+  };
+
+  const handleRemove = async (botId: string, botName: string) => {
+    if (!confirm(`Delete "${botName}" permanently? This cannot be undone.`)) return;
     try {
       const res = await fetch('/api/auto-trading/remove', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ botId }),
       });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to remove bot');
-      }
-
+      if (!res.ok) throw new Error('Failed to delete');
       fetchBots();
     } catch (err: any) {
-      alert(err.message || 'Failed to remove bot');
+      alert(err.message || 'Failed to delete');
     }
   };
+
+  const activeBots = bots.filter(b => !b.isArchived);
+  const archivedBots = bots.filter(b => b.isArchived);
 
   if (loading && bots.length === 0) {
     return (
@@ -156,13 +186,23 @@ export default function ManageBotsPage() {
             Add or remove trading bots from your collection
           </p>
         </div>
-        <Button
-          onClick={() => setShowAddForm(true)}
-          className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
-        >
-          <Plus size={16} className="mr-2" />
-          Add New Bot
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setShowArchived(!showArchived)}
+            className="flex items-center gap-1"
+          >
+            {showArchived ? <EyeOff size={16} /> : <Eye size={16} />}
+            {showArchived ? 'Hide Archived' : 'Show Archived'}
+          </Button>
+          <Button
+            onClick={() => setShowAddForm(true)}
+            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+          >
+            <Plus size={16} className="mr-2" />
+            Add New Bot
+          </Button>
+        </div>
       </div>
 
       {/* Error */}
@@ -189,7 +229,7 @@ export default function ManageBotsPage() {
                   <Input
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="e.g., Pipnex Algo EA"
+                    placeholder="e.g., My Custom EA"
                     required
                   />
                 </div>
@@ -240,7 +280,7 @@ export default function ManageBotsPage() {
                   <Input
                     value={formData.performance}
                     onChange={(e) => setFormData({ ...formData, performance: e.target.value })}
-                    placeholder="e.g., +156% in 2024"
+                    placeholder="e.g., +156% in 2026"
                   />
                 </div>
                 <div>
@@ -299,25 +339,63 @@ export default function ManageBotsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
-          {bots.map((bot) => (
-            <ManageBotCard
-              key={bot.id}
-              bot={bot}
-              onRemove={() => handleRemoveBot(bot.id, bot.name)}
-            />
-          ))}
-        </div>
+        <>
+          {/* Active Bots */}
+          {activeBots.length > 0 && (
+            <div className="space-y-3">
+              <h2 className="text-lg font-semibold text-gray-700">Active Bots</h2>
+              {activeBots.map((bot) => (
+                <ManageBotCard
+                  key={bot.id}
+                  bot={bot}
+                  onArchive={() => handleArchive(bot.id, bot.name)}
+                  onRemove={() => handleRemove(bot.id, bot.name)}
+                  showArchiveButton={bot.userId !== null} // only user-owned bots can archive
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Archived Bots */}
+          {showArchived && archivedBots.length > 0 && (
+            <div className="space-y-3 mt-6">
+              <h2 className="text-lg font-semibold text-gray-500">Archived Bots</h2>
+              {archivedBots.map((bot) => (
+                <ManageBotCard
+                  key={bot.id}
+                  bot={bot}
+                  onRestore={() => handleRestore(bot.id, bot.name)}
+                  onRemove={() => handleRemove(bot.id, bot.name)}
+                  isArchived={true}
+                />
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
 }
 
 // ============================================
-// Manage Bot Card
+// Manage Bot Card Component
 // ============================================
 
-function ManageBotCard({ bot, onRemove }: { bot: Bot; onRemove: () => void }) {
+function ManageBotCard({ 
+  bot, 
+  onArchive, 
+  onRestore, 
+  onRemove, 
+  isArchived = false,
+  showArchiveButton = true,
+}: { 
+  bot: Bot; 
+  onArchive?: () => void; 
+  onRestore?: () => void; 
+  onRemove: () => void; 
+  isArchived?: boolean;
+  showArchiveButton?: boolean;
+}) {
   const colorMap: Record<string, string> = {
     blue: 'border-l-blue-500',
     purple: 'border-l-purple-500',
@@ -328,7 +406,7 @@ function ManageBotCard({ bot, onRemove }: { bot: Bot; onRemove: () => void }) {
   };
 
   return (
-    <Card className={`border-l-4 ${colorMap[bot.color] || colorMap.blue}`}>
+    <Card className={`border-l-4 ${colorMap[bot.color] || colorMap.blue} ${isArchived ? 'opacity-60' : ''}`}>
       <CardContent className="p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
         <div className="flex items-center gap-4">
           <div className="text-3xl">{bot.icon}</div>
@@ -338,25 +416,50 @@ function ManageBotCard({ bot, onRemove }: { bot: Bot; onRemove: () => void }) {
               <span className="text-xs px-2 py-0.5 bg-gray-100 rounded-full text-gray-500">
                 {bot.type}
               </span>
-              <span className={`text-xs px-2 py-0.5 rounded-full ${
-                bot.isRunning ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-              }`}>
-                {bot.isRunning ? '● Running' : 'Stopped'}
-              </span>
+              {isArchived && (
+                <span className="text-xs px-2 py-0.5 bg-gray-300 rounded-full text-gray-600">
+                  Archived
+                </span>
+              )}
             </div>
             <p className="text-sm text-gray-500">{bot.description}</p>
             <p className="text-xs text-gray-400">Strategy: {bot.strategy} · Risk: {bot.riskLevel}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm font-medium text-green-600 mr-2">{bot.performance}</span>
+          
+          {isArchived ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onRestore}
+              className="flex items-center gap-1 text-blue-600 border-blue-300 hover:bg-blue-50"
+            >
+              <RotateCcw size={14} /> Restore
+            </Button>
+          ) : (
+            <>
+              {showArchiveButton && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onArchive}
+                  className="flex items-center gap-1 text-amber-600 border-amber-300 hover:bg-amber-50"
+                >
+                  <Archive size={14} /> Archive
+                </Button>
+              )}
+            </>
+          )}
+          
           <Button
             variant="destructive"
             size="sm"
             onClick={onRemove}
             className="flex items-center gap-1"
           >
-            <Trash2 size={14} /> Remove
+            <Trash2 size={14} /> Delete
           </Button>
         </div>
       </CardContent>
