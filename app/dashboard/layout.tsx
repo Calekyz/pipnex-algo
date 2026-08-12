@@ -18,6 +18,7 @@ import {
   CreditCard, 
   Phone, 
   Settings,
+  Globe // ✅ Import Globe icon for News
 } from 'lucide-react';
 
 interface MenuItem {
@@ -28,6 +29,7 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   { name: 'Overview', href: '/dashboard', icon: <LayoutDashboard size={18} /> },
+  { name: 'News & Calendar', href: '/dashboard/news', icon: <Globe size={18} /> }, // ✅ NEW
   { name: 'Prompt Trading', href: '/dashboard/prompt-trading', icon: <MessageSquare size={18} /> },
   { name: 'Auto Trading', href: '/dashboard/auto-trading', icon: <Zap size={18} /> },
   { name: 'AI Trading', href: '/dashboard/ai-trading', icon: <Bot size={18} /> },
@@ -44,7 +46,6 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // ✅ Sidebar is CLOSED by default (false)
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
   const { user } = useUser();
@@ -54,7 +55,7 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Toggle Button - Always Visible */}
+      {/* Toggle Button */}
       <button
         onClick={toggleSidebar}
         className="fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
@@ -63,7 +64,7 @@ export default function DashboardLayout({
         {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
 
-      {/* Sidebar Overlay (for mobile) */}
+      {/* Sidebar Overlay */}
       {sidebarOpen && (
         <div
           className="lg:hidden fixed inset-0 bg-black/50 z-40"
