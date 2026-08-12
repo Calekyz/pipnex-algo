@@ -5,12 +5,11 @@ import { getRealTimePrice, getTechnicalIndicators } from '@/lib/twelvedata';
 import { generatePulseSignals } from '@/lib/ai-analysis';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60; // Allow up to 60 seconds for all pairs
+export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   try {
     const { userId } = await auth();
-
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -18,30 +17,34 @@ export async function POST(req: NextRequest) {
     const user = await prisma.user.findUnique({
       where: { clerkId: userId },
     });
-
     if (!user || user.status !== 'ACTIVE') {
       return NextResponse.json({ error: 'Account not active' }, { status: 403 });
     }
 
-    // Check credits (costs 2 credits for all pairs)
-    if (user.credits < 2) {
+    if (!process.env.GEMINI_API_KEY || !process.env.TWELVE_DATA_API_KEY) {
       return NextResponse.json(
-        { error: 'Insufficient credits. Requires 2 credits for all pairs.' },
-        { status: 402 }
+        { error: 'One or more required API keys are missing.' },
+        { status: 503 }
       );
     }
 
     const { pairs } = await req.json();
-
     if (!pairs || !Array.isArray(pairs) || pairs.length === 0) {
       return NextResponse.json({ error: 'Pairs are required' }, { status: 400 });
+    }
+
+    if (user.credits < 2) {
+      return NextResponse.json(
+        { error: 'Insufficient credits. Requires 2 credits.' },
+        { status: 402 }
+      );
     }
 
     // Fetch market data for all pairs in parallel
     const priceDataMap: any = {};
     const indicatorsMap: any = {};
 
-    await Promise.all(
+    await Promise.allSettled(
       pairs.map(async (pair: any) => {
         try {
           const [price, indicators] = await Promise.all([
@@ -58,7 +61,6 @@ export async function POST(req: NextRequest) {
       })
     );
 
-    // Generate signals
     const signals = await generatePulseSignals(pairs, priceDataMap, indicatorsMap);
 
     // Deduct 2 credits
