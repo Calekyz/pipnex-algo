@@ -1,31 +1,35 @@
-import { openai } from '@ai-sdk/openai';
-import { generateObject } from 'ai';
-import { z } from 'zod';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Existing Analysis Schema (for single pair)
-const AnalysisSchema = z.object({
-  trend: z.enum(['Bullish', 'Bearish', 'Neutral']),
-  support_level: z.string(),
-  resistance_level: z.string(),
-  entry_price: z.string(),
-  stop_loss: z.string(),
-  take_profit: z.string(),
-  confidence: z.number().min(0).max(100),
-  rationale: z.string(),
-});
+// Initialize Gemini
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
-// NEW: Signal Schema for Pulse Signals
-const SignalSchema = z.object({
-  direction: z.enum(['BUY', 'SELL']),
-  entry_price: z.string(),
-  stop_loss: z.string(),
-  take_profit: z.string(),
-  pips: z.number(),
-  confidence: z.number().min(0).max(100),
-  rationale: z.string(),
-});
+// Define the expected structure (matching your old Zod schema)
+interface AnalysisResult {
+  trend: 'Bullish' | 'Bearish' | 'Neutral';
+  support_level: string;
+  resistance_level: string;
+  entry_price: string;
+  stop_loss: string;
+  take_profit: string;
+  confidence: number;
+  rationale: string;
+}
 
-export async function generateForexAnalysis(symbol: string, priceData: any, indicators: any) {
+export async function generateForexAnalysis(
+  symbol: string,
+  priceData: any,
+  indicators: any
+): Promise<AnalysisResult> {
+  // 1. Use the Flash model (fast and cheap) or Pro for higher quality
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-2.0-flash', // or 'gemini-1.5-pro'
+    generationConfig: {
+      responseMimeType: 'application/json', // Forces Gemini to output valid JSON
+      temperature: 0.2, // Lower temperature for more deterministic trading logic
+    },
+  });
+
+  // 2. Build the prompt
   const prompt = `
     You are PipnexAi Algo, a senior Forex analyst with 20 years of experience.
     Analyze the following real market data for ${symbol}:
@@ -37,99 +41,39 @@ export async function generateForexAnalysis(symbol: string, priceData: any, indi
     MACD: ${indicators?.macd || 'N/A'}
 
     Provide a professional trading analysis. Be conservative, highlight risks, and give clear entry/exit levels.
+
+    Return the response strictly as a JSON object with these exact keys:
+    {
+      "trend": "Bullish" or "Bearish" or "Neutral",
+      "support_level": "string (e.g., 1.0845)",
+      "resistance_level": "string (e.g., 1.0920)",
+      "entry_price": "string (e.g., 1.0880)",
+      "stop_loss": "string (e.g., 1.0840)",
+      "take_profit": "string (e.g., 1.0940)",
+      "confidence": number (0-100),
+      "rationale": "string (short reasoning)"
+    }
   `;
 
-  const { object } = await generateObject({
-    model: openai('gpt-4o-mini'),
-    schema: AnalysisSchema,
-    prompt: prompt,
-  });
+  // 3. Generate content
+  const result = await model.generateContent(prompt);
+  const responseText = result.response.text();
 
-  return object;
-}
-
-// NEW: Generate Pulse Signal for a single pair (with pip calculation)
-export async function generatePulseSignal(symbol: string, priceData: any, indicators: any) {
-  const prompt = `
-    You are PipnexAi Algo, a senior Forex analyst. Generate a trading signal for ${symbol}.
-
-    Current Price: ${priceData?.price || 'N/A'}
-    RSI: ${indicators?.rsi || 'N/A'}
-    SMA: ${indicators?.sma || 'N/A'}
-    MACD: ${indicators?.macd || 'N/A'}
-
-    Provide:
-    - Direction (BUY or SELL)
-    - Entry Price (specific number)
-    - Stop Loss (specific number)
-    - Take Profit (specific number)
-    - Pips (calculate the pip difference between entry and stop loss)
-    - Confidence (1-100)
-    - Brief rationale (1 sentence)
-
-    Be conservative and realistic.
-  `;
-
-  const { object } = await generateObject({
-    model: openai('gpt-4o-mini'),
-    schema: SignalSchema,
-    prompt: prompt,
-  });
-
-  return object;
-}
-
-// NEW: Generate signals for multiple pairs
-export async function generatePulseSignals(pairs: { label: string; value: string }[], priceDataMap: any, indicatorsMap: any) {
-  const signals: any[] = [];
-
-  for (const pair of pairs) {
-    const priceData = priceDataMap[pair.value];
-    const indicators = indicatorsMap[pair.value];
-
-    if (!priceData || !indicators) {
-      signals.push({
-        pair: pair.label,
-        symbol: pair.value,
-        error: 'No data available',
-      });
-      continue;
-    }
-
-    try {
-      const signal = await generatePulseSignal(pair.value, priceData, indicators);
-      signals.push({
-        pair: pair.label,
-        symbol: pair.value,
-        ...signal,
-        currentPrice: priceData.price,
-        change: priceData.change,
-      });
-    } catch (error) {
-      console.error(`Failed to generate signal for ${pair.value}:`, error);
-      signals.push({
-        pair: pair.label,
-        symbol: pair.value,
-        error: 'Failed to generate signal',
-      });
-    }
+  // 4. Parse the JSON (Gemini guarantees valid JSON due to the config)
+  try {
+    return JSON.parse(responseText) as AnalysisResult;
+  } catch (error) {
+    console.error('Failed to parse Gemini response:', responseText);
+    // Fallback in case of malformed response
+    return {
+      trend: 'Neutral',
+      support_level: 'N/A',
+      resistance_level: 'N/A',
+      entry_price: 'N/A',
+      stop_loss: 'N/A',
+      take_profit: 'N/A',
+      confidence: 50,
+      rationale: 'Analysis failed to parse correctly.',
+    };
   }
-
-  return signals;
-}
-
-// Helper: Calculate pips manually (fallback if AI doesn't calculate)
-export function calculatePips(symbol: string, entry: number, stopLoss: number): number {
-  const pipSize = symbol.includes('JPY') ? 0.01 : 0.0001;
-  const diff = Math.abs(entry - stopLoss);
-  return Math.round(diff / pipSize);
-}
-
-// Helper: Format price based on pair
-export function formatPrice(symbol: string, price: number | string): string {
-  const num = typeof price === 'string' ? parseFloat(price) : price;
-  if (isNaN(num)) return 'N/A';
-  
-  const decimals = symbol.includes('JPY') ? 3 : 5;
-  return num.toFixed(decimals);
 }
