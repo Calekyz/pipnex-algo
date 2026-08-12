@@ -5,7 +5,7 @@ import { useUser } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Loader2, Plus, Play, Square, Bot, Wallet, AlertCircle, RefreshCw } from 'lucide-react';
+import { Loader2, Plus, Play, Square, Bot, Wallet, AlertCircle, Settings2 } from 'lucide-react';
 
 interface Bot {
   id: string;
@@ -26,7 +26,7 @@ interface BrokerAccount {
   balance?: number;
 }
 
-// ✅ All brokers supported by the trading engine
+// ✅ All supported brokers
 const SUPPORTED_BROKERS = [
   'IC_MARKETS',
   'VALETAX',
@@ -36,6 +36,51 @@ const SUPPORTED_BROKERS = [
   'FXPRO',
   'PEPPERSTONE',
 ];
+
+// ✅ EA configuration fields for each bot type
+const getEAConfigFields = (botType: string) => {
+  const baseFields = [
+    { key: 'initialLot', label: 'Initial Lot Size', type: 'number', default: 0.05, step: 0.01 },
+    { key: 'martingaleMultiplier', label: 'Martingale Multiplier', type: 'number', default: 2.0, step: 0.1 },
+    { key: 'tradesPerSequence', label: 'Trades Per Sequence', type: 'number', default: 3, step: 1 },
+    { key: 'recoveryTarget', label: 'Recovery Target (pips)', type: 'number', default: 20, step: 1 },
+    { key: 'initialSL', label: 'Initial Stop Loss (pips)', type: 'number', default: 70, step: 1 },
+  ];
+
+  const scalperFields = [
+    { key: 'initialLot', label: 'Initial Lot Size', type: 'number', default: 0.03, step: 0.01 },
+    { key: 'martingaleMultiplier', label: 'Martingale Multiplier', type: 'number', default: 2.0, step: 0.1 },
+    { key: 'tradesPerSequence', label: 'Trades Per Sequence', type: 'number', default: 3, step: 1 },
+    { key: 'recoveryTarget', label: 'Recovery Target (pips)', type: 'number', default: 10, step: 1 },
+    { key: 'initialSL', label: 'Initial Stop Loss (pips)', type: 'number', default: 30, step: 1 },
+  ];
+
+  const swingFields = [
+    { key: 'lotSize', label: 'Lot Size', type: 'number', default: 0.05, step: 0.01 },
+    { key: 'rewardRiskRatio', label: 'Reward/Risk Ratio', type: 'number', default: 3.0, step: 0.1 },
+    { key: 'swingStrength', label: 'Swing Strength', type: 'number', default: 30, step: 1 },
+    { key: 'maxOpenPositions', label: 'Max Open Positions', type: 'number', default: 5, step: 1 },
+    { key: 'fibLevels', label: 'Fibonacci Levels', type: 'text', default: '0.236,0.382,0.5,0.618,0.786' },
+  ];
+
+  const aiFields = [
+    { key: 'lotSize', label: 'Lot Size', type: 'number', default: 0.04, step: 0.01 },
+    { key: 'rewardRiskRatio', label: 'Reward/Risk Ratio', type: 'number', default: 3.0, step: 0.1 },
+    { key: 'swingStrength', label: 'Swing Strength', type: 'number', default: 30, step: 1 },
+    { key: 'maxOpenPositions', label: 'Max Open Positions', type: 'number', default: 4, step: 1 },
+  ];
+
+  switch (botType) {
+    case 'SCALPER':
+      return scalperFields;
+    case 'SWING':
+      return swingFields;
+    case 'AI':
+      return aiFields;
+    default:
+      return baseFields;
+  }
+};
 
 export default function PromptTradingPage() {
   const { user } = useUser();
@@ -48,6 +93,7 @@ export default function PromptTradingPage() {
   const [showAddAccount, setShowAddAccount] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [testingConnection, setTestingConnection] = useState<string | null>(null);
+  const [eaConfig, setEaConfig] = useState<Record<string, any>>({});
 
   const [newAccount, setNewAccount] = useState({
     name: '',
@@ -61,6 +107,19 @@ export default function PromptTradingPage() {
     fetchBots();
     fetchAccounts();
   }, []);
+
+  useEffect(() => {
+    // When bot changes, load default config
+    const bot = bots.find(b => b.id === selectedBot);
+    if (bot) {
+      const fields = getEAConfigFields(bot.type);
+      const config: Record<string, any> = {};
+      fields.forEach(f => {
+        config[f.key] = f.default;
+      });
+      setEaConfig(config);
+    }
+  }, [selectedBot, bots]);
 
   const fetchBots = async () => {
     try {
@@ -100,7 +159,7 @@ export default function PromptTradingPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        fetchAccounts(); // refresh status
+        fetchAccounts();
         alert('✅ Connection successful!');
       } else {
         setError(data.error || 'Connection failed');
@@ -128,7 +187,6 @@ export default function PromptTradingPage() {
         setShowAddAccount(false);
         setNewAccount({ name: '', broker: 'IC_MARKETS', accountId: '', password: '', server: '' });
         fetchAccounts();
-        // Test connection after adding
         const data = await res.json();
         if (data.account) {
           await testConnection(data.account.id);
@@ -157,7 +215,11 @@ export default function PromptTradingPage() {
       const res = await fetch('/api/prompt-trading/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ botId: selectedBot, accountId: selectedAccount }),
+        body: JSON.stringify({
+          botId: selectedBot,
+          accountId: selectedAccount,
+          config: eaConfig,
+        }),
       });
 
       if (res.ok) {
@@ -198,8 +260,13 @@ export default function PromptTradingPage() {
     }
   };
 
+  const handleConfigChange = (key: string, value: any) => {
+    setEaConfig({ ...eaConfig, [key]: value });
+  };
+
   const selectedBotData = bots.find(b => b.id === selectedBot);
   const selectedAccountData = accounts.find(a => a.id === selectedAccount);
+  const configFields = selectedBotData ? getEAConfigFields(selectedBotData.type) : [];
 
   return (
     <div className="space-y-6 pb-24">
@@ -283,16 +350,52 @@ export default function PromptTradingPage() {
                     {testingConnection === selectedAccountData.id ? (
                       <Loader2 size={12} className="animate-spin" />
                     ) : (
-                      <RefreshCw size={12} />
+                      'Test Connection'
                     )}
-                    Test Connection
                   </button>
                 </div>
               )}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Right: EA Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Settings2 size={20} /> EA Settings
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {configFields.length === 0 ? (
+              <p className="text-sm text-gray-500">Select a bot to configure settings</p>
+            ) : (
+              configFields.map((field) => (
+                <div key={field.key}>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{field.label}</label>
+                  {field.type === 'text' ? (
+                    <Input
+                      type="text"
+                      value={eaConfig[field.key] || ''}
+                      onChange={(e) => handleConfigChange(field.key, e.target.value)}
+                      className="w-full"
+                      placeholder={field.default}
+                    />
+                  ) : (
+                    <Input
+                      type="number"
+                      step={field.step || 0.01}
+                      value={eaConfig[field.key] || field.default}
+                      onChange={(e) => handleConfigChange(field.key, parseFloat(e.target.value))}
+                      className="w-full"
+                    />
+                  )}
+                </div>
+              ))
+            )}
 
             {/* Action Buttons */}
-            <div className="flex gap-3 pt-2">
+            <div className="flex gap-3 pt-4 border-t">
               {!isRunning ? (
                 <Button
                   onClick={handleStartTrading}
@@ -317,54 +420,6 @@ export default function PromptTradingPage() {
             {isRunning && (
               <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm text-center">
                 🟢 Auto Trading Active: {selectedBotData?.name}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Right: Account Management */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Wallet size={20} /> Connected Accounts
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {accounts.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <div className="text-4xl mb-2">🏦</div>
-                <p>No broker accounts connected</p>
-                <p className="text-sm text-gray-400 mt-1">Click "Add Account" to connect</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {accounts.map((acc) => (
-                  <div
-                    key={acc.id}
-                    className={`p-3 border rounded-lg flex justify-between items-center ${
-                      acc.isConnected ? 'border-green-200 bg-green-50' : 'border-gray-200'
-                    }`}
-                  >
-                    <div>
-                      <p className="font-medium text-gray-800">{acc.name}</p>
-                      <p className="text-xs text-gray-500">
-                        {acc.broker.replace('_', ' ')} · Account: {acc.accountId}
-                      </p>
-                      {acc.balance !== undefined && (
-                        <p className="text-sm font-semibold text-gray-700">
-                          Balance: ${acc.balance.toFixed(2)}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        acc.isConnected ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-                      }`}>
-                        {acc.isConnected ? '● Online' : 'Offline'}
-                      </span>
-                    </div>
-                  </div>
-                ))}
               </div>
             )}
           </CardContent>
