@@ -8,20 +8,19 @@ datasource db {
 }
 
 // ============================================
-// USER & AUTH
+// USER
 // ============================================
-
 model User {
-  id            String          @id @default(cuid())
-  clerkId       String          @unique
-  email         String          @unique
+  id            String   @id @default(cuid())
+  clerkId       String   @unique
+  email         String   @unique
   name          String?
-  status        UserStatus      @default(PENDING)
-  credits       Int             @default(0)
-  plan          String?         // "PRO", "GOLD", "PLATINUM"
+  status        String   @default("PENDING")   // PENDING, ACTIVE, EXPIRED, PENDING_VERIFICATION
+  credits       Int      @default(0)
+  plan          String?  // PRO, GOLD, PLATINUM
   planExpiry    DateTime?
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   // Relations
   licenses      UserLicense[]
@@ -35,95 +34,92 @@ model User {
 // ============================================
 // LICENSE SYSTEM
 // ============================================
-
 model UserLicense {
-  id            String          @id @default(cuid())
+  id            String   @id @default(cuid())
   userId        String
-  user          User            @relation(fields: [userId], references: [id])
-  code          String          @unique
-  plan          String          // "PRO", "GOLD", "PLATINUM"
-  duration      Int             // Duration in days
+  user          User     @relation(fields: [userId], references: [id])
+  code          String   @unique
+  plan          String   // PRO, GOLD, PLATINUM
+  duration      Int      // days
   expiresAt     DateTime
-  redeemedAt    DateTime        @default(now())
-  isActive      Boolean         @default(true)
-  createdAt     DateTime        @default(now())
+  redeemedAt    DateTime @default(now())
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
 }
 
 model LicenseCode {
-  id            String          @id @default(cuid())
-  code          String          @unique
-  plan          String          // "PRO", "GOLD", "PLATINUM"
-  duration      Int             // Duration in days
-  isUsed        Boolean         @default(false)
+  id            String   @id @default(cuid())
+  code          String   @unique
+  plan          String
+  duration      Int
+  isUsed        Boolean  @default(false)
   usedBy        String?
   usedAt        DateTime?
   createdBy     String?
-  createdAt     DateTime        @default(now())
+  createdAt     DateTime @default(now())
   expiresAt     DateTime?
 }
 
 // ============================================
 // PAYMENT SYSTEM
 // ============================================
-
 model PaymentProof {
-  id            String       @id @default(cuid())
+  id            String   @id @default(cuid())
   userId        String
-  user          User         @relation(fields: [userId], references: [id])
-  method        String       // "MPESA" or "CRYPTO"
-  amount        Int          // Amount in KES or USD
+  user          User     @relation(fields: [userId], references: [id])
+  method        String   // MPESA or CRYPTO
+  amount        Int
   requestedPlan String?
   reference     String?
   screenshotUrl String?
-  status        ProofStatus  @default(SUBMITTED)
+  status        String   @default("SUBMITTED") // SUBMITTED, VERIFIED, REJECTED
   verifiedBy    String?
-  createdAt     DateTime     @default(now())
+  createdAt     DateTime @default(now())
   verifiedAt    DateTime?
 }
 
 // ============================================
 // SUPPORT SYSTEM
 // ============================================
-
 model SupportTicket {
-  id        String          @id @default(cuid())
-  userId    String
-  user      User            @relation(fields: [userId], references: [id])
-  subject   String
-  status    TicketStatus    @default(OPEN)
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
-  messages  SupportMessage[]
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  subject       String
+  status        String   @default("OPEN") // OPEN, CLOSED
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  messages      SupportMessage[]
 }
 
 model SupportMessage {
-  id         String        @id @default(cuid())
-  ticketId   String
-  ticket     SupportTicket @relation(fields: [ticketId], references: [id])
-  sender     SenderType
-  message    String
-  isRead     Boolean       @default(false)
-  createdAt  DateTime      @default(now())
+  id            String   @id @default(cuid())
+  ticketId      String
+  ticket        SupportTicket @relation(fields: [ticketId], references: [id])
+  sender        String   // USER or ADMIN
+  message       String
+  isRead        Boolean  @default(false)
+  createdAt     DateTime @default(now())
 }
 
 // ============================================
-// BOTS SYSTEM (Auto Trading)
+// BOTS SYSTEM
 // ============================================
-
 model Bot {
   id            String   @id @default(cuid())
   name          String
   description   String
-  type          String   // "EA", "AI", "SCALPER", "SWING", "GRID", "MARTINGALE"
+  type          String   // EA, AI, SCALPER, SWING, GRID, MARTINGALE
   strategy      String
-  riskLevel     String   // "LOW", "MODERATE", "HIGH"
+  riskLevel     String   // LOW, MODERATE, HIGH
   performance   String   // e.g., "+156% Backtested in 2026"
   icon          String   @default("🤖")
   color         String   @default("blue")
   isActive      Boolean  @default(true)
   isRunning     Boolean  @default(false)
-  isArchived    Boolean  @default(false)   // 👈 Soft delete / archive
-  userId        String?  // null = global bot, userId = user-owned bot
+  isArchived    Boolean  @default(false)
+  userId        String?  // null = global bot
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -133,129 +129,69 @@ model Bot {
 }
 
 // ============================================
-// BROKER ACCOUNTS (Client Owned)
+// BROKER ACCOUNTS
 // ============================================
-
 model BrokerAccount {
-  id            String          @id @default(cuid())
+  id            String   @id @default(cuid())
   userId        String
-  user          User            @relation(fields: [userId], references: [id])
+  user          User     @relation(fields: [userId], references: [id])
   
-  name          String          // User-defined name
-  broker        BrokerType      // IC_MARKETS, VALETAX, EXNESS, JUST_MARKET, HFM, FXPRO, PEPPERSTONE
-  accountId     String          // MT5 Login
-  password      String          // Encrypted
+  name          String
+  broker        String   // IC_MARKETS, VALETAX, EXNESS, JUST_MARKET, HFM, FXPRO, PEPPERSTONE
+  accountId     String
+  password      String   // encrypted
   server        String?
-  
-  // API credentials (if any)
   apiToken      String?
   apiHost       String?
   
-  isConnected   Boolean         @default(false)
+  isConnected   Boolean  @default(false)
   lastConnected DateTime?
-  status        AccountStatus   @default(INACTIVE)
+  status        String   @default("INACTIVE") // INACTIVE, ACTIVE, CONNECTED, DISCONNECTED, ERROR
   
-  enabled       Boolean         @default(true)
+  enabled       Boolean  @default(true)
   maxLotSize    Float?
   riskPerTrade  Float?
   
-  totalTrades   Int             @default(0)
-  totalProfit   Float           @default(0)
-  winRate       Float           @default(0)
+  totalTrades   Int      @default(0)
+  totalProfit   Float    @default(0)
+  winRate       Float    @default(0)
   
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   // Relations
   eaInstances   EAInstance[]
-  
+
   @@unique([userId, accountId, broker])
 }
 
 // ============================================
-// EA INSTANCES (Running on Trading Engine)
+// EA INSTANCES
 // ============================================
-
 model EAInstance {
-  id            String          @id @default(cuid())
+  id            String   @id @default(cuid())
   userId        String
-  user          User            @relation(fields: [userId], references: [id])
+  user          User     @relation(fields: [userId], references: [id])
   
   brokerAccountId String
-  brokerAccount BrokerAccount   @relation(fields: [brokerAccountId], references: [id])
+  brokerAccount BrokerAccount @relation(fields: [brokerAccountId], references: [id])
   
   botId         String
-  bot           Bot             @relation(fields: [botId], references: [id])
+  bot           Bot      @relation(fields: [botId], references: [id])
   
-  status        EAStatus        @default(REGISTERED)
+  status        String   @default("REGISTERED") // REGISTERED, ONLINE, RUNNING, PAUSED, STOPPED, ERROR
   startedAt     DateTime?
   stoppedAt     DateTime?
   
-  // Live metrics
-  balance       Float           @default(0)
-  equity        Float           @default(0)
-  openPositions Int             @default(0)
-  totalTrades   Int             @default(0)
-  profit        Float           @default(0)
+  balance       Float    @default(0)
+  equity        Float    @default(0)
+  openPositions Int      @default(0)
+  totalTrades   Int      @default(0)
+  profit        Float    @default(0)
   
-  // Configuration
-  config        Json?           // EA-specific settings
+  config        Json?    // EA-specific settings
   
-  lastHeartbeat DateTime        @default(now())
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-}
-
-// ============================================
-// ENUMS
-// ============================================
-
-enum UserStatus {
-  PENDING
-  PENDING_VERIFICATION
-  ACTIVE
-  EXPIRED
-}
-
-enum ProofStatus {
-  SUBMITTED
-  VERIFIED
-  REJECTED
-}
-
-enum TicketStatus {
-  OPEN
-  CLOSED
-}
-
-enum SenderType {
-  USER
-  ADMIN
-}
-
-enum BrokerType {
-  IC_MARKETS
-  VALETAX
-  EXNESS
-  JUST_MARKET
-  HFM
-  FXPRO
-  PEPPERSTONE
-}
-
-enum AccountStatus {
-  INACTIVE
-  ACTIVE
-  CONNECTED
-  DISCONNECTED
-  ERROR
-}
-
-enum EAStatus {
-  REGISTERED
-  ONLINE
-  RUNNING
-  PAUSED
-  STOPPED
-  ERROR
+  lastHeartbeat DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
