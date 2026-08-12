@@ -2,19 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-
-// Zod schema moved here since we removed the ai package
 import { z } from 'zod';
 
 const ChartAnalysisSchema = z.object({
-  pattern: z.string().describe('The detected chart pattern (e.g., Head and Shoulders, Double Top, Flag)'),
+  pattern: z.string().describe('The detected chart pattern'),
   trend: z.enum(['Uptrend', 'Downtrend', 'Ranging']).describe('The overall trend direction'),
   support: z.string().describe('Key support level price'),
   resistance: z.string().describe('Key resistance level price'),
   entry: z.string().describe('Suggested entry price'),
   stopLoss: z.string().describe('Suggested stop loss price'),
   takeProfit: z.string().describe('Suggested take profit price'),
-  confidence: z.number().min(0).max(100).describe('Confidence score for this analysis'),
+  confidence: z.number().min(0).max(100).describe('Confidence score'),
   summary: z.string().describe('Brief summary of the analysis'),
   recommendation: z.enum(['BUY', 'SELL', 'HOLD']).describe('Trading recommendation'),
 });
@@ -24,7 +22,6 @@ export const maxDuration = 60;
 export async function POST(req: NextRequest) {
   try {
     const { userId } = await auth();
-
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -32,11 +29,9 @@ export async function POST(req: NextRequest) {
     const user = await prisma.user.findUnique({
       where: { clerkId: userId },
     });
-
     if (!user || user.status !== 'ACTIVE') {
       return NextResponse.json({ error: 'Account not active' }, { status: 403 });
     }
-
     if (user.credits < 1) {
       return NextResponse.json(
         { error: 'Insufficient credits. Requires 1 credit per chart analysis.' },
@@ -53,13 +48,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No image provided' }, { status: 400 });
     }
 
-    // 1. Convert image to base64 for inline upload
+    // Convert to base64
     const bytes = await image.arrayBuffer();
     const buffer = Buffer.from(bytes);
     const base64Image = buffer.toString('base64');
     const mimeType = image.type || 'image/png';
 
-    // 2. Initialize Gemini
+    // Gemini setup
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
     const model = genAI.getGenerativeModel({
       model: 'gemini-1.5-pro',
@@ -69,14 +64,12 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // 3. Build the prompt
     const prompt = `
       You are PipnexAi Algo, a senior Forex chart analyst with 20 years of experience.
-
       Analyze the attached trading chart image for ${symbol} on the ${timeframe} timeframe.
 
       Please identify:
-      1. The current chart pattern (e.g., Head and Shoulders, Double Top, Double Bottom, Flag, Triangle, Wedge, etc.)
+      1. The current chart pattern (e.g., Head and Shoulders, Double Top, Flag, etc.)
       2. The overall trend direction (Uptrend, Downtrend, or Ranging)
       3. Key support and resistance levels (specific prices)
       4. Suggested entry price
@@ -90,11 +83,11 @@ export async function POST(req: NextRequest) {
       {
         "pattern": "string",
         "trend": "Uptrend" or "Downtrend" or "Ranging",
-        "support": "string (e.g., 1.0845)",
-        "resistance": "string (e.g., 1.0920)",
-        "entry": "string (e.g., 1.0880)",
-        "stopLoss": "string (e.g., 1.0840)",
-        "takeProfit": "string (e.g., 1.0940)",
+        "support": "string",
+        "resistance": "string",
+        "entry": "string",
+        "stopLoss": "string",
+        "takeProfit": "string",
         "confidence": number,
         "summary": "string",
         "recommendation": "BUY" or "SELL" or "HOLD"
@@ -103,7 +96,6 @@ export async function POST(req: NextRequest) {
       Be realistic and conservative. Always consider proper risk management.
     `;
 
-    // 4. Send image + prompt to Gemini
     const result = await model.generateContent([
       { text: prompt },
       {
@@ -115,8 +107,6 @@ export async function POST(req: NextRequest) {
     ]);
 
     const responseText = result.response.text();
-
-    // 5. Parse and validate the response
     let parsedResult;
     try {
       parsedResult = JSON.parse(responseText);
@@ -128,7 +118,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 6. Validate against Zod schema
     const validationResult = ChartAnalysisSchema.safeParse(parsedResult);
     if (!validationResult.success) {
       console.error('Validation error:', validationResult.error);
@@ -138,7 +127,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 7. Deduct 1 credit
+    // Deduct credit
     await prisma.user.update({
       where: { id: user.id },
       data: { credits: { decrement: 1 } },
