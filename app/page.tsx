@@ -5,8 +5,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { ChevronDown, ChevronUp, MessageCircle } from 'lucide-react';
 
 export default function HomePage() {
@@ -82,8 +80,18 @@ export default function HomePage() {
               </span>
             </div>
 
+            {/* ========== ANIMATED TITLE ========== */}
             <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
-              AI-Powered Forex
+              <span className="inline-flex items-center gap-2 flex-wrap justify-center">
+                <span className="inline-block">AI-Powered</span>
+                <span className="inline-block relative">
+                  <span className="inline-block mr-1">Forex</span>
+                  {/* AI Emoji with jump animation */}
+                  <span className="ai-emoji-jump inline-block text-3xl sm:text-4xl md:text-5xl ml-1">
+                    🤖
+                  </span>
+                </span>
+              </span>
               <br />
               <span className="bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">
                 Trading Intelligence
@@ -123,7 +131,7 @@ export default function HomePage() {
         </main>
       </section>
 
-      {/* ========== WHY CHOOSE PIPNEX - DROPDOWN ========== */}
+      {/* ========== WHY CHOOSE - DROPDOWN ========== */}
       <section className="py-12 bg-gray-900 border-t border-gray-800">
         <div className="container mx-auto px-4">
           <button
@@ -173,7 +181,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ========== PRICING SECTION (UPDATED) ========== */}
+      {/* ========== PRICING ========== */}
       <section id="pricing" className="py-16 md:py-20 bg-gray-800 border-t border-gray-700">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl md:text-4xl font-bold text-white text-center mb-4">
@@ -184,7 +192,6 @@ export default function HomePage() {
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {/* Starter Plan – Blue/Silver */}
             <PricingCard
               name="Starter"
               description="Perfect for getting started"
@@ -202,13 +209,10 @@ export default function HomePage() {
                 "Trading Journal",
                 "24/7 Priority Support",
               ]}
-              planKey="starter"
               popular={false}
               color="blue"
-              buttonText="Get Started"
             />
 
-            {/* Pro Plan – Gold/Yellow */}
             <PricingCard
               name="Pro"
               description="For serious traders"
@@ -226,13 +230,10 @@ export default function HomePage() {
                 "Unlimited Custom Setups",
                 "24/7 Priority Support",
               ]}
-              planKey="pro"
               popular={true}
               color="gold"
-              buttonText="Get Started"
             />
 
-            {/* Elite Plan – Purple/Platinum */}
             <PricingCard
               name="Elite"
               description="Maximum performance"
@@ -254,10 +255,8 @@ export default function HomePage() {
                 "Priority AI processing",
                 "White-glove support",
               ]}
-              planKey="elite"
               popular={false}
               color="purple"
-              buttonText="Get Started"
             />
           </div>
 
@@ -269,7 +268,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ========== FLOATING WHATSAPP BUTTON ========== */}
+      {/* Floating WhatsApp */}
       <a
         href="https://wa.me/254101606189?text=Hello%2C%20I%20want%20to%20subscribe%20to%20PipnexAi%20Algo.%20Please%20send%20me%20payment%20details%20for%20the%20following%20plan%3A"
         target="_blank"
@@ -281,7 +280,6 @@ export default function HomePage() {
         <span className="text-sm sm:hidden">Pay</span>
       </a>
 
-      {/* ========== FOOTER ========== */}
       <footer className="bg-gray-900 border-t border-gray-800 py-8">
         <div className="container mx-auto px-4 text-center">
           <p className="text-sm text-gray-500">
@@ -314,30 +312,22 @@ function FeatureCard({ icon, title, description }: { icon: string; title: string
   );
 }
 
-// ============================================
-// PRICING CARD COMPONENT (UPDATED)
-// ============================================
-
 function PricingCard({
   name,
   description,
   price,
   period,
   features,
-  planKey,
   popular,
   color,
-  buttonText,
 }: {
   name: string;
   description: string;
   price: string;
   period: string;
   features: string[];
-  planKey: string;
   popular: boolean;
   color: 'blue' | 'gold' | 'purple';
-  buttonText: string;
 }) {
   const colorMap = {
     blue: {
@@ -392,7 +382,7 @@ function PricingCard({
 
       <Link href="/dashboard/subscription">
         <Button className={`w-full ${colors.button} text-white font-semibold transition-all`}>
-          {buttonText}
+          Get Started
         </Button>
       </Link>
     </div>
