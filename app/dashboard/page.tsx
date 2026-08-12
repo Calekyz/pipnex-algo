@@ -15,27 +15,27 @@ import {
   BarChart,
   Radio,
   Wallet,
-  Play
+  Play,
+  Square,
+  AlertCircle
 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
-  // 1. Get the authenticated user from Clerk
   const { userId } = await auth();
 
-  // 2. If not logged in, redirect to sign-in
   if (!userId) {
     return redirect('/sign-in');
   }
 
-  // 3. Try to find the user in the database
   let user = await prisma.user.findUnique({
     where: { clerkId: userId },
     include: {
       bots: true,
       eaInstances: {
-        where: { status: 'RUNNING' },
+        where: { status: { in: ['RUNNING', 'ONLINE'] } },
+        include: { bot: true, brokerAccount: true },
       },
       brokerAccounts: {
         where: { isConnected: true },
@@ -43,19 +43,13 @@ export default async function DashboardPage() {
     },
   });
 
-  // 4. If user does not exist, create them
   if (!user) {
     try {
-      // Fetch user details from Clerk API
       const clerkRes = await fetch(`https://api.clerk.com/v1/users/${userId}`, {
-        headers: {
-          Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}`,
-        },
+        headers: { Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}` },
       });
 
       if (!clerkRes.ok) {
-        console.error('Failed to fetch Clerk user:', await clerkRes.text());
-        // Fallback: redirect to sign-in if we can't create user
         return redirect('/sign-in');
       }
 
@@ -63,19 +57,19 @@ export default async function DashboardPage() {
       const email = clerkUser.email_addresses?.[0]?.email_address || '';
       const name = `${clerkUser.first_name || ''} ${clerkUser.last_name || ''}`.trim() || 'User';
 
-      // Create the user in the database
       user = await prisma.user.create({
         data: {
           clerkId: userId,
           email,
           name,
-          status: 'PENDING', // They still need to activate
+          status: 'PENDING',
           credits: 0,
         },
         include: {
           bots: true,
           eaInstances: {
-            where: { status: 'RUNNING' },
+            where: { status: { in: ['RUNNING', 'ONLINE'] } },
+            include: { bot: true, brokerAccount: true },
           },
           brokerAccounts: {
             where: { isConnected: true },
@@ -84,39 +78,59 @@ export default async function DashboardPage() {
       });
     } catch (error) {
       console.error('Error creating user:', error);
-      // If anything fails, redirect to sign-in
       return redirect('/sign-in');
     }
   }
 
-  // 5. If user status is PENDING or EXPIRED, redirect to sign-up (activation)
   if (user.status === 'PENDING' || user.status === 'EXPIRED') {
     return redirect('/sign-up');
   }
 
-  // 6. Compute dashboard stats
+  // Real stats from database
   const totalBots = user.bots?.length || 0;
   const runningBots = user.bots?.filter(b => b.isRunning).length || 0;
   const activeEAs = user.eaInstances?.length || 0;
-  const connectedBrokers = user.brokerAccounts?.length || 0;
+
+  // Real EA metrics (aggregate from all EA instances)
+  let totalTrades = 0;
+  let totalProfit = 0;
+  let totalBalance = 0;
+
+  for (const ea of user.eaInstances || []) {
+    totalTrades += ea.totalTrades || 0;
+    totalProfit += ea.profit || 0;
+    totalBalance += ea.balance || 0;
+  }
+
   const isAutoTradingActive = runningBots > 0 || activeEAs > 0;
+  const connectedBrokers = user.brokerAccounts?.length || 0;
 
-  // Mock stats (replace with real data from your API later)
-  const signalsToday = 12;
-  const tradesToday = 8;
-  const pnl = '+$234.50';
-  const pnlPercent = '+4.2%';
-  const isPositive = pnl.startsWith('+');
+  // Format numbers
+  const formattedProfit = totalProfit >= 0 ? `+$${totalProfit.toFixed(2)}` : `-$${Math.abs(totalProfit).toFixed(2)}`;
+  const isPositive = totalProfit >= 0;
 
-  // Mock recent activities (replace with real data)
+  // Build activity feed from EA instances
   const activities = [
-    { id: 1, type: 'trade', message: 'BUY EUR/USD executed', time: '2 min ago', status: 'success' },
-    { id: 2, type: 'signal', message: 'AI signal generated for GBP/JPY', time: '15 min ago', status: 'info' },
-    { id: 3, type: 'bot', message: 'Zillionaire EA started on IC Markets', time: '1 hour ago', status: 'success' },
-    { id: 4, type: 'alert', message: 'Stop loss triggered for XAU/USD', time: '2 hours ago', status: 'warning' },
+    ...(user.eaInstances?.map(ea => ({
+      id: ea.id,
+      type: 'bot',
+      message: `${ea.bot?.name || 'EA'} running on ${ea.brokerAccount?.name || ea.brokerAccount?.broker || 'broker'}`,
+      time: ea.startedAt ? `${Math.floor((Date.now() - new Date(ea.startedAt).getTime()) / 60000)} min ago` : 'Just now',
+      status: 'success',
+    })) || []),
   ];
 
-  // 7. Render the dashboard
+  // If no activities, show a placeholder
+  if (activities.length === 0) {
+    activities.push({
+      id: 0,
+      type: 'info',
+      message: 'No trading activity yet. Start your first EA!',
+      time: 'Now',
+      status: 'info',
+    });
+  }
+
   return (
     <div className="space-y-6 pb-24">
       {/* HEADER */}
@@ -157,24 +171,24 @@ export default async function DashboardPage() {
           color="blue"
         />
         <StatCard
-          title="Signals Today"
-          value={signalsToday}
-          icon={<Radio className="w-5 h-5 text-purple-500" />}
-          subtitle="Last 24h"
+          title="Active EAs"
+          value={activeEAs}
+          icon={<Activity className="w-5 h-5 text-purple-500" />}
+          subtitle={`${connectedBrokers} brokers connected`}
           color="purple"
         />
         <StatCard
-          title="Trades Today"
-          value={tradesToday}
-          icon={<Activity className="w-5 h-5 text-orange-500" />}
-          subtitle="Executed"
+          title="Total Trades"
+          value={totalTrades}
+          icon={<BarChart className="w-5 h-5 text-orange-500" />}
+          subtitle="All time"
           color="orange"
         />
         <StatCard
-          title="P&L Today"
-          value={pnl}
+          title="Total P&L"
+          value={formattedProfit}
           icon={isPositive ? <TrendingUp className="w-5 h-5 text-green-500" /> : <TrendingDown className="w-5 h-5 text-red-500" />}
-          subtitle={pnlPercent}
+          subtitle={`Balance: $${totalBalance.toFixed(2)}`}
           color={isPositive ? 'green' : 'red'}
           valueColor={isPositive ? 'text-green-600' : 'text-red-600'}
         />
@@ -212,7 +226,7 @@ export default async function DashboardPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
-            <Clock className="w-5 h-5 text-gray-500" /> Recent Activity
+            <Clock className="w-5 h-5 text-gray-500" /> Activity Feed
           </CardTitle>
           <Link href="/dashboard/activity" className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
             View all <ChevronRight className="w-4 h-4" />
