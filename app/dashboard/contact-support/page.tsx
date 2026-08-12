@@ -1,21 +1,33 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef } from 'react';
 import { useUser } from '@clerk/nextjs';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { MessageCircle, Phone, Mail, Send } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { MessageCircle, Phone, Send, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 
 export default function SupportPage() {
-  const router = useRouter();
   const { user } = useUser();
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'chat' | 'whatsapp'>('chat');
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [adminOnline, setAdminOnline] = useState(false);
+  const [sent, setSent] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Pre-fill message from URL param
+  useEffect(() => {
+    const prefill = searchParams.get('message');
+    if (prefill) {
+      setNewMessage(decodeURIComponent(prefill));
+    }
+  }, [searchParams]);
 
   // Check admin status
   useEffect(() => {
@@ -59,7 +71,7 @@ export default function SupportPage() {
     e.preventDefault();
     if (!newMessage.trim()) return;
 
-    setLoading(true);
+    setSending(true);
     try {
       const res = await fetch('/api/support/messages', {
         method: 'POST',
@@ -67,21 +79,40 @@ export default function SupportPage() {
         body: JSON.stringify({ message: newMessage }),
       });
       if (res.ok) {
-        setNewMessage('');
-        fetchMessages();
+        setSent(true);
+        // If it's a subscription request, show a special message
+        if (newMessage.includes('upgrade my subscription') || newMessage.includes('subscription')) {
+          setTimeout(() => {
+            setSent(false);
+            setNewMessage('');
+          }, 5000);
+        } else {
+          setNewMessage('');
+          fetchMessages();
+        }
       }
     } catch (err) {
       console.error('Failed to send message:', err);
     } finally {
-      setLoading(false);
+      setSending(false);
     }
   };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   return (
     <div className="space-y-6 pb-24">
       <div>
-        <h1 className="text-2xl font-bold text-gray-800">Contact Support</h1>
-        <p className="text-gray-500 text-sm">Get help from our support team</p>
+        <h1 className="text-2xl font-bold text-gray-800">📞 Contact Support</h1>
+        <p className="text-gray-500 text-sm">
+          Get help from our support team or request a subscription upgrade
+        </p>
       </div>
 
       {/* Tab Selection */}
@@ -135,11 +166,24 @@ export default function SupportPage() {
             </div>
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto p-4 space-y-3">
-            {messages.length === 0 ? (
+            {/* Subscription request success */}
+            {sent && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-green-700 text-sm flex items-start gap-2">
+                <CheckCircle size={18} className="flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium">Request sent successfully!</p>
+                  <p className="text-green-600">
+                    Our team will review your request and get back to you within 24 hours.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {messages.length === 0 && !sent ? (
               <div className="text-center text-gray-500 py-8">
                 <p className="text-lg">💬</p>
                 <p>No messages yet. Start a conversation!</p>
-                <p className="text-sm text-gray-400">Support team will respond within 24 hours</p>
+                <p className="text-sm text-gray-400 mt-1">Support team will respond within 24 hours</p>
               </div>
             ) : (
               messages.map((msg) => (
@@ -151,28 +195,36 @@ export default function SupportPage() {
                       : 'bg-gray-200 text-gray-800 self-end ml-auto'
                   }`}
                 >
-                  <p className="text-sm">{msg.message}</p>
+                  <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
                   <p className="text-[10px] text-gray-500 mt-1">
                     {new Date(msg.createdAt).toLocaleTimeString()}
                   </p>
                 </div>
               ))
             )}
+            <div ref={messagesEndRef} />
           </CardContent>
           <div className="p-4 border-t bg-gray-50">
             <form onSubmit={sendMessage} className="flex gap-2">
-              <input
+              <Input
                 type="text"
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Type your message..."
-                className="flex-1 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={loading}
+                placeholder={searchParams.get('message') ? 'Edit your request...' : 'Type your message...'}
+                className="flex-1"
+                disabled={sending || sent}
               />
-              <Button type="submit" disabled={loading}>
-                {loading ? 'Sending...' : <Send size={20} />}
+              <Button type="submit" disabled={sending || sent || !newMessage.trim()}>
+                {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
               </Button>
             </form>
+            <p className="text-xs text-gray-400 mt-2">
+              {searchParams.get('message') ? (
+                <span className="text-blue-600">💡 Your subscription request has been pre-filled. Send it to our team!</span>
+              ) : (
+                'Need to upgrade? Click "Get Plan" from the Subscription page to auto-fill your request.'
+              )}
+            </p>
           </div>
         </Card>
       )}
