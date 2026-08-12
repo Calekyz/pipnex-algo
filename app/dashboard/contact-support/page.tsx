@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { MessageCircle, Phone, Send, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 
-export default function SupportPage() {
+// ============================================
+// Inner component that uses useSearchParams
+// ============================================
+function SupportContent() {
   const { user } = useUser();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'chat' | 'whatsapp'>('chat');
@@ -80,7 +83,6 @@ export default function SupportPage() {
       });
       if (res.ok) {
         setSent(true);
-        // If it's a subscription request, show a special message
         if (newMessage.includes('upgrade my subscription') || newMessage.includes('subscription')) {
           setTimeout(() => {
             setSent(false);
@@ -166,7 +168,6 @@ export default function SupportPage() {
             </div>
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto p-4 space-y-3">
-            {/* Subscription request success */}
             {sent && (
               <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-green-700 text-sm flex items-start gap-2">
                 <CheckCircle size={18} className="flex-shrink-0 mt-0.5" />
@@ -254,5 +255,18 @@ export default function SupportPage() {
         </Card>
       )}
     </div>
+  );
+}
+
+// ============================================
+// Default export with Suspense boundary
+// ============================================
+export default function SupportPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center items-center min-h-[60vh]">
+      <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+    </div>}>
+      <SupportContent />
+    </Suspense>
   );
 }
