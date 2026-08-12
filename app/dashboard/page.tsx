@@ -17,18 +17,19 @@ import {
   Wallet,
   Play,
   Square,
-  AlertCircle
+  AlertCircle,
+  User
 } from 'lucide-react';
+import NewsTicker from '@/components/dashboard/NewsTicker';
 
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
+  // 1. Get user
   const { userId } = await auth();
+  if (!userId) return redirect('/sign-in');
 
-  if (!userId) {
-    return redirect('/sign-in');
-  }
-
+  // 2. Fetch user from DB
   let user = await prisma.user.findUnique({
     where: { clerkId: userId },
     include: {
@@ -43,28 +44,18 @@ export default async function DashboardPage() {
     },
   });
 
+  // 3. If user doesn't exist, create them
   if (!user) {
     try {
       const clerkRes = await fetch(`https://api.clerk.com/v1/users/${userId}`, {
         headers: { Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}` },
       });
-
-      if (!clerkRes.ok) {
-        return redirect('/sign-in');
-      }
-
+      if (!clerkRes.ok) return redirect('/sign-in');
       const clerkUser = await clerkRes.json();
       const email = clerkUser.email_addresses?.[0]?.email_address || '';
       const name = `${clerkUser.first_name || ''} ${clerkUser.last_name || ''}`.trim() || 'User';
-
       user = await prisma.user.create({
-        data: {
-          clerkId: userId,
-          email,
-          name,
-          status: 'PENDING',
-          credits: 0,
-        },
+        data: { clerkId: userId, email, name, status: 'PENDING', credits: 0 },
         include: {
           bots: true,
           eaInstances: {
@@ -82,42 +73,31 @@ export default async function DashboardPage() {
     }
   }
 
+  // 4. Redirect if pending/expired
   if (user.status === 'PENDING' || user.status === 'EXPIRED') {
     return redirect('/sign-up');
   }
 
-  // Real stats from database
+  // 5. Compute stats
   const totalBots = user.bots?.length || 0;
   const runningBots = user.bots?.filter(b => b.isRunning).length || 0;
   const activeEAs = user.eaInstances?.length || 0;
+  const connectedBrokers = user.brokerAccounts?.length || 0;
+  const isAutoTradingActive = runningBots > 0 || activeEAs > 0;
 
-  // Real EA metrics (aggregate from all EA instances)
   let totalTrades = 0;
   let totalProfit = 0;
   let totalBalance = 0;
-
   for (const ea of user.eaInstances || []) {
     totalTrades += ea.totalTrades || 0;
     totalProfit += ea.profit || 0;
     totalBalance += ea.balance || 0;
   }
-
-  const isAutoTradingActive = runningBots > 0 || activeEAs > 0;
-  const connectedBrokers = user.brokerAccounts?.length || 0;
-
-  // Format numbers
   const formattedProfit = totalProfit >= 0 ? `+$${totalProfit.toFixed(2)}` : `-$${Math.abs(totalProfit).toFixed(2)}`;
   const isPositive = totalProfit >= 0;
 
-  // Build activity feed from EA instances
-  const activities: {
-    id: string;
-    type: string;
-    message: string;
-    time: string;
-    status: string;
-  }[] = [];
-
+  // 6. Build activity feed
+  const activities: { id: string; type: string; message: string; time: string; status: string }[] = [];
   for (const ea of user.eaInstances || []) {
     const startedAt = ea.startedAt;
     let timeAgo = 'Just now';
@@ -129,7 +109,6 @@ export default async function DashboardPage() {
       else if (minutes < 1440) timeAgo = `${Math.floor(minutes / 60)} hours ago`;
       else timeAgo = `${Math.floor(minutes / 1440)} days ago`;
     }
-
     activities.push({
       id: ea.id,
       type: 'bot',
@@ -138,8 +117,6 @@ export default async function DashboardPage() {
       status: 'success',
     });
   }
-
-  // If no activities, show a placeholder
   if (activities.length === 0) {
     activities.push({
       id: '0',
@@ -150,13 +127,35 @@ export default async function DashboardPage() {
     });
   }
 
+  // 7. Fetch news for the ticker (server-side)
+  let newsItems: { headline: string; url: string }[] = [];
+  try {
+    const newsRes = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/news`, {
+      cache: 'no-store',
+    });
+    if (newsRes.ok) {
+      const data = await newsRes.json();
+      newsItems = data.news?.slice(0, 20).map((item: any) => ({
+        headline: item.headline,
+        url: item.url,
+      })) || [];
+    }
+  } catch (error) {
+    console.error('Failed to fetch news for ticker:', error);
+  }
+
+  // 8. Render dashboard
   return (
     <div className="space-y-6 pb-24">
-      {/* HEADER */}
+      {/* ===== NEWS TICKER ===== */}
+      <NewsTicker items={newsItems} />
+
+      {/* ===== HEADER ===== */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">
-            Welcome back{user.name ? `, ${user.name}` : ''} 👋
+          <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
+            <span>Welcome back{user.name ? `, ${user.name}` : ''}</span>
+            <span className="text-2xl">👋</span>
           </h1>
           <p className="text-gray-500 text-sm">
             {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
@@ -179,7 +178,7 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* STATS CARDS */}
+      {/* ===== STATS CARDS ===== */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard
           title="Active Bots"
@@ -213,7 +212,7 @@ export default async function DashboardPage() {
         />
       </div>
 
-      {/* QUICK ACTION CARDS */}
+      {/* ===== QUICK ACTION CARDS ===== */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <QuickActionCard
           title="AI Trading"
@@ -241,7 +240,7 @@ export default async function DashboardPage() {
         />
       </div>
 
-      {/* RECENT ACTIVITY */}
+      {/* ===== ACTIVITY FEED ===== */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
@@ -277,7 +276,7 @@ export default async function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* BOT STATUS OVERVIEW */}
+      {/* ===== BOT OVERVIEW ===== */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
@@ -380,7 +379,7 @@ function StatCard({
 }
 
 // ============================================
-// Quick Action Card Component
+// Quick Action Card
 // ============================================
 
 function QuickActionCard({ 
