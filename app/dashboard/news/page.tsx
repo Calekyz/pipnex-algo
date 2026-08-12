@@ -12,11 +12,9 @@ import {
   Globe, 
   AlertCircle,
   RefreshCw,
-  TrendingUp,
-  TrendingDown,
-  Minus,
   Clock,
-  Filter
+  Filter,
+  Info
 } from 'lucide-react';
 
 interface NewsItem {
@@ -42,9 +40,65 @@ interface EventItem {
 type TabType = 'all' | 'news' | 'events';
 type ImpactFilter = 'all' | 'High' | 'Medium' | 'Low';
 
+// ============================================
+// Helpers
+// ============================================
+function isWeekend(dateStr: string): boolean {
+  const date = new Date(dateStr);
+  const day = date.getDay();
+  return day === 0 || day === 6; // 0 = Sunday, 6 = Saturday
+}
+
+function isTodayWeekend(): boolean {
+  return isWeekend(new Date().toISOString().split('T')[0]);
+}
+
+function getWeekdayOnly(events: EventItem[]): EventItem[] {
+  return events.filter(event => !isWeekend(event.date));
+}
+
+function getImpactColor(impact: string) {
+  switch (impact) {
+    case 'High': return 'bg-red-100 text-red-700 border-red-200';
+    case 'Medium': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+    default: return 'bg-gray-100 text-gray-500 border-gray-200';
+  }
+}
+
+function getImpactEmoji(impact: string) {
+  switch (impact) {
+    case 'High': return '🔴';
+    case 'Medium': return '🟡';
+    default: return '🟢';
+  }
+}
+
+function getTimeAgo(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 1440) return `${Math.floor(minutes / 60)}h ago`;
+  return `${Math.floor(minutes / 1440)}d ago`;
+}
+
+function getEventDateDisplay(dateStr: string) {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('en-US', { 
+    weekday: 'short', 
+    month: 'short', 
+    day: 'numeric',
+    year: 'numeric'
+  });
+}
+
+// ============================================
+// Main Component
+// ============================================
 export default function NewsPage() {
   const { user } = useUser();
   const [news, setNews] = useState<NewsItem[]>([]);
+  const [rawEvents, setRawEvents] = useState<EventItem[]>([]);
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -66,7 +120,14 @@ export default function NewsPage() {
       }
       const data = await res.json();
       setNews(data.news || []);
-      setEvents(data.events || []);
+      
+      // Raw events from API (may include weekends)
+      const allEvents = data.events || [];
+      setRawEvents(allEvents);
+      
+      // Apply weekday filter
+      const weekdayEvents = getWeekdayOnly(allEvents);
+      setEvents(weekdayEvents);
     } catch (err: any) {
       console.error('News fetch error:', err);
       setError(err.message || 'Failed to fetch news');
@@ -78,8 +139,6 @@ export default function NewsPage() {
 
   useEffect(() => {
     fetchNews();
-
-    // Refresh every 5 minutes
     const interval = setInterval(() => fetchNews(true), 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
@@ -100,40 +159,7 @@ export default function NewsPage() {
     })
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // newest first
 
-  const getImpactColor = (impact: string) => {
-    switch (impact) {
-      case 'High': return 'bg-red-100 text-red-700 border-red-200';
-      case 'Medium': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-      default: return 'bg-gray-100 text-gray-500 border-gray-200';
-    }
-  };
-
-  const getImpactEmoji = (impact: string) => {
-    switch (impact) {
-      case 'High': return '🔴';
-      case 'Medium': return '🟡';
-      default: return '🟢';
-    }
-  };
-
-  const getTimeAgo = (dateStr: string) => {
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const minutes = Math.floor(diff / 60000);
-    if (minutes < 1) return 'Just now';
-    if (minutes < 60) return `${minutes}m ago`;
-    if (minutes < 1440) return `${Math.floor(minutes / 60)}h ago`;
-    return `${Math.floor(minutes / 1440)}d ago`;
-  };
-
-  const getEventDateDisplay = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { 
-      weekday: 'short', 
-      month: 'short', 
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
+  const isWeekendToday = isTodayWeekend();
 
   const renderTabContent = () => {
     if (loading) {
@@ -161,6 +187,17 @@ export default function NewsPage() {
 
     return (
       <div className="space-y-8">
+        {/* Weekend notice for calendar */}
+        {showEvents && isWeekendToday && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700 flex items-start gap-2">
+            <Info size={18} className="flex-shrink-0 mt-0.5" />
+            <span>
+              Economic calendar events are shown for weekdays only (Mon–Fri). 
+              No events are scheduled for weekends.
+            </span>
+          </div>
+        )}
+
         {/* News Section */}
         {showNews && (
           <Card>
@@ -240,9 +277,15 @@ export default function NewsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {filteredEvents.length === 0 ? (
+              {isWeekendToday ? (
+                <div className="text-center py-8 text-gray-500">
+                  <div className="text-4xl mb-2">📅</div>
+                  <p className="font-medium">No events on weekends</p>
+                  <p className="text-sm text-gray-400">Check back on Monday for the latest economic calendar.</p>
+                </div>
+              ) : filteredEvents.length === 0 ? (
                 <p className="text-gray-500 text-center py-8">
-                  {searchTerm ? 'No events match your search' : 'No upcoming economic events'}
+                  {searchTerm ? 'No events match your search' : 'No upcoming economic events this week'}
                 </p>
               ) : (
                 <ul className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
@@ -289,7 +332,7 @@ export default function NewsPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-800">📰 Market News & Economic Calendar</h1>
           <p className="text-gray-500 text-sm">
-            Real-time forex news and upcoming economic events
+            Real-time forex news and upcoming economic events (weekdays only)
           </p>
         </div>
         <Button
