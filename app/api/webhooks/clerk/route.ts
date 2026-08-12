@@ -1,32 +1,25 @@
+import { Webhook } from 'svix';
 import { WebhookEvent } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { Webhook } from 'svix';
 
-// Optional: If you have a signing secret, you can verify the webhook authenticity.
-// Set CLERK_WEBHOOK_SECRET in your environment variables.
 const webhookSecret = process.env.CLERK_WEBHOOK_SECRET;
 
 export async function POST(req: Request) {
   try {
-    // ============================================================
-    // 1. Read the raw request body as text (ONCE)
-    // ============================================================
+    // Read the raw body
     const payloadText = await req.text();
-    const payload = JSON.parse(payloadText) as WebhookEvent;
 
-    // ============================================================
-    // 2. Optionally verify the webhook signature (if secret is set)
-    // ============================================================
+    // Get headers
+    const svixId = req.headers.get('svix-id');
+    const svixTimestamp = req.headers.get('svix-timestamp');
+    const svixSignature = req.headers.get('svix-signature');
+
+    // If webhook secret is set, verify the signature
     if (webhookSecret) {
-      const svixId = req.headers.get('svix-id');
-      const svixTimestamp = req.headers.get('svix-timestamp');
-      const svixSignature = req.headers.get('svix-signature');
-
       if (!svixId || !svixTimestamp || !svixSignature) {
-        console.error('Missing Svix headers');
         return NextResponse.json(
-          { error: 'Missing webhook verification headers' },
+          { error: 'Missing svix headers' },
           { status: 400 }
         );
       }
@@ -39,20 +32,18 @@ export async function POST(req: Request) {
           'svix-signature': svixSignature,
         });
       } catch (err) {
-        console.error('Webhook signature verification failed:', err);
+        console.error('Webhook verification failed:', err);
         return NextResponse.json(
-          { error: 'Invalid webhook signature' },
+          { error: 'Invalid signature' },
           { status: 401 }
         );
       }
     }
 
-    // ============================================================
-    // 3. Process the event
-    // ============================================================
-    const eventType = payload.type;
+    // Parse and process the event
+    const payload = JSON.parse(payloadText) as WebhookEvent;
 
-    if (eventType === 'user.created') {
+    if (payload.type === 'user.created') {
       const { id, email_addresses, first_name, last_name } = payload.data;
 
       const email = email_addresses?.[0]?.email_address || '';
@@ -63,15 +54,14 @@ export async function POST(req: Request) {
           clerkId: id,
           email,
           name,
-          status: 'PENDING', // They still need to activate
+          status: 'PENDING',
           credits: 0,
         },
       });
 
-      console.log(`✅ User created in database: ${email}`);
+      console.log(`✅ User created: ${email}`);
     }
 
-    // Return a success response
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('Webhook error:', error);
