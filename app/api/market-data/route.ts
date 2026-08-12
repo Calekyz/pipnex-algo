@@ -7,14 +7,11 @@ export async function GET(req: NextRequest) {
   try {
     const symbol = req.nextUrl.searchParams.get('symbol') || 'EUR/USD';
 
-    console.log('📊 Market Data API called for:', symbol);
-
-    // Check if Twelve Data API key exists
     if (!process.env.TWELVE_DATA_API_KEY) {
-      console.error('❌ TWELVE_DATA_API_KEY is missing!');
+      console.error('TWELVE_DATA_API_KEY is missing');
       return NextResponse.json(
-        { error: 'Twelve Data API key is not configured' },
-        { status: 500 }
+        { error: 'Market data service not configured' },
+        { status: 503 }
       );
     }
 
@@ -24,7 +21,12 @@ export async function GET(req: NextRequest) {
       getTechnicalIndicators(symbol),
     ]);
 
-    console.log('💰 Price:', price ? 'Received' : 'Failed');
+    if (!price) {
+      return NextResponse.json(
+        { error: `No data returned for ${symbol}. Please check the symbol or your API key.` },
+        { status: 404 }
+      );
+    }
 
     return NextResponse.json({
       price,
@@ -32,9 +34,9 @@ export async function GET(req: NextRequest) {
       indicators,
     });
   } catch (error: any) {
-    console.error('❌ Market data error:', error.message);
+    console.error('Market data error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch market data: ' + error.message },
+      { error: error.message || 'Failed to fetch market data' },
       { status: 500 }
     );
   }
