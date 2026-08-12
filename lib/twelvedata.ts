@@ -2,11 +2,14 @@ const API_KEY = process.env.TWELVE_DATA_API_KEY;
 const BASE_URL = 'https://api.twelvedata.com';
 
 // ============================================
-// CORE API FUNCTIONS
+// 1. Get Real-Time Quote
 // ============================================
-
 export async function getRealTimePrice(symbol: string) {
   try {
+    if (!API_KEY) {
+      console.error('TWELVE_DATA_API_KEY is missing');
+      return null;
+    }
     const url = `${BASE_URL}/quote?symbol=${encodeURIComponent(symbol)}&apikey=${API_KEY}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
@@ -26,8 +29,12 @@ export async function getRealTimePrice(symbol: string) {
   }
 }
 
+// ============================================
+// 2. Get Historical Candles
+// ============================================
 export async function getHistoricalData(symbol: string, interval: string = '5min') {
   try {
+    if (!API_KEY) return [];
     const url = `${BASE_URL}/time_series?symbol=${encodeURIComponent(symbol)}&interval=${interval}&outputsize=100&apikey=${API_KEY}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
@@ -39,19 +46,23 @@ export async function getHistoricalData(symbol: string, interval: string = '5min
   }
 }
 
+// ============================================
+// 3. Get Technical Indicators
+// ============================================
 export async function getTechnicalIndicators(symbol: string) {
   try {
+    if (!API_KEY) return { rsi: null, sma: null, macd: null };
     const [rsiData, smaData, macdData] = await Promise.all([
       fetch(`${BASE_URL}/rsi?symbol=${encodeURIComponent(symbol)}&time_period=14&apikey=${API_KEY}`).then(r => r.json()).catch(() => null),
       fetch(`${BASE_URL}/sma?symbol=${encodeURIComponent(symbol)}&time_period=20&apikey=${API_KEY}`).then(r => r.json()).catch(() => null),
       fetch(`${BASE_URL}/macd?symbol=${encodeURIComponent(symbol)}&fast=12&slow=26&apikey=${API_KEY}`).then(r => r.json()).catch(() => null),
     ]);
 
-    const rsi = rsiData?.values?.[0]?.rsi || null;
-    const sma = smaData?.values?.[0]?.sma || null;
-    const macd = macdData?.values?.[0]?.macd || null;
-
-    return { rsi, sma, macd };
+    return {
+      rsi: rsiData?.values?.[0]?.rsi || null,
+      sma: smaData?.values?.[0]?.sma || null,
+      macd: macdData?.values?.[0]?.macd || null,
+    };
   } catch (error) {
     console.error('Twelve Data indicators error:', error);
     return { rsi: null, sma: null, macd: null };
@@ -59,11 +70,10 @@ export async function getTechnicalIndicators(symbol: string) {
 }
 
 // ============================================
-// COMPLETE FOREX PAIRS (Majors, Minors, Exotics)
+// 4. Complete Forex & Metals List
 // ============================================
-
 export const FOREX_PAIRS = [
-  // ===== MAJORS =====
+  // Majors
   { label: 'EUR/USD', value: 'EUR/USD' },
   { label: 'GBP/USD', value: 'GBP/USD' },
   { label: 'USD/JPY', value: 'USD/JPY' },
@@ -71,8 +81,7 @@ export const FOREX_PAIRS = [
   { label: 'USD/CAD', value: 'USD/CAD' },
   { label: 'USD/CHF', value: 'USD/CHF' },
   { label: 'NZD/USD', value: 'NZD/USD' },
-
-  // ===== MINORS (Crosses) =====
+  // Crosses
   { label: 'EUR/GBP', value: 'EUR/GBP' },
   { label: 'EUR/JPY', value: 'EUR/JPY' },
   { label: 'EUR/CHF', value: 'EUR/CHF' },
@@ -93,8 +102,7 @@ export const FOREX_PAIRS = [
   { label: 'NZD/CAD', value: 'NZD/CAD' },
   { label: 'CHF/JPY', value: 'CHF/JPY' },
   { label: 'CAD/JPY', value: 'CAD/JPY' },
-
-  // ===== EXOTICS (Emerging Markets) =====
+  // Exotics
   { label: 'USD/TRY', value: 'USD/TRY' },
   { label: 'USD/ZAR', value: 'USD/ZAR' },
   { label: 'USD/SGD', value: 'USD/SGD' },
@@ -122,42 +130,18 @@ export const FOREX_PAIRS = [
   { label: 'USD/IDR', value: 'USD/IDR' },
   { label: 'USD/PKR', value: 'USD/PKR' },
   { label: 'USD/EGP', value: 'USD/EGP' },
-
-  // ===== METALS (Precious Metals) =====
+  // Metals
   { label: 'Gold (XAU/USD)', value: 'XAU/USD' },
   { label: 'Silver (XAG/USD)', value: 'XAG/USD' },
   { label: 'Platinum (XPT/USD)', value: 'XPT/USD' },
   { label: 'Palladium (XPD/USD)', value: 'XPD/USD' },
-
-  // ===== COMMODITIES (CFDs – optional) =====
+  // Commodities
   { label: 'Brent Oil', value: 'BZ=F' },
   { label: 'WTI Oil', value: 'CL=F' },
   { label: 'Natural Gas', value: 'NG=F' },
   { label: 'Copper', value: 'HG=F' },
 ];
 
-// ============================================
-// SPECIAL LISTS FOR DIFFERENT FEATURES
-// ============================================
-
-export const PULSE_PAIRS = [
-  { label: 'EUR/USD', value: 'EUR/USD' },
-  { label: 'GBP/USD', value: 'GBP/USD' },
-  { label: 'USD/JPY', value: 'USD/JPY' },
-  { label: 'AUD/USD', value: 'AUD/USD' },
-  { label: 'USD/CAD', value: 'USD/CAD' },
-  { label: 'USD/CHF', value: 'USD/CHF' },
-  { label: 'NZD/USD', value: 'NZD/USD' },
-  { label: 'EUR/GBP', value: 'EUR/GBP' },
-];
-
-export const METAL_PAIRS = [
-  { label: 'Gold (XAU/USD)', value: 'XAU/USD' },
-  { label: 'Silver (XAG/USD)', value: 'XAG/USD' },
-  { label: 'Platinum (XPT/USD)', value: 'XPT/USD' },
-  { label: 'Palladium (XPD/USD)', value: 'XPD/USD' },
-];
-
+export const PULSE_PAIRS = FOREX_PAIRS.slice(0, 8);
+export const METAL_PAIRS = FOREX_PAIRS.slice(52, 56);
 export const MAJOR_PAIRS = FOREX_PAIRS.slice(0, 7);
-export const MINOR_PAIRS = FOREX_PAIRS.slice(7, 27);
-export const EXOTIC_PAIRS = FOREX_PAIRS.slice(27, 52);
