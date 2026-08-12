@@ -1,94 +1,68 @@
-'use client';
-
-import { useState, useEffect } from 'react';
-import { useUser } from '@clerk/nextjs';
-import Link from 'next/link';
+import { auth } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
+import { prisma } from '@/lib/db';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import Link from 'next/link';
 import { 
-  Loader2, 
-  Play, 
-  Square, 
-  Plus, 
-  Settings, 
+  Activity, 
+  Bot, 
   TrendingUp, 
-  TrendingDown,
-  Activity,
-  Zap,
-  Bot,
-  Sparkles,
-  Shield,
-  Target,
-  Clock
+  TrendingDown, 
+  Zap, 
+  Clock, 
+  ChevronRight,
+  Play,
+  Square,
+  Loader2,
+  AlertCircle
 } from 'lucide-react';
 
-interface Bot {
-  id: string;
-  name: string;
-  description: string;
-  type: string;
-  strategy: string;
-  riskLevel: string;
-  performance: string;
-  icon: string;
-  color: string;
-  isActive: boolean;
-  isRunning: boolean;
-  userId: string | null;
-}
+export const dynamic = 'force-dynamic';
 
-export default function AutoTradingPage() {
-  const { user } = useUser();
-  const [bots, setBots] = useState<Bot[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [toggling, setToggling] = useState<string | null>(null);
+export default async function AutoTradingPage() {
+  const { userId } = await auth();
 
-  const fetchBots = async () => {
-    try {
-      const res = await fetch('/api/auto-trading');
-      if (!res.ok) {
-        throw new Error('Failed to fetch bots');
-      }
-      const data = await res.json();
-      setBots(data.bots || []);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load bots');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchBots();
-  }, []);
-
-  const toggleBot = async (botId: string, currentStatus: boolean) => {
-    setToggling(botId);
-    try {
-      const res = await fetch('/api/auto-trading/toggle', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ botId, action: currentStatus ? 'stop' : 'start' }),
-      });
-      if (!res.ok) {
-        throw new Error('Failed to toggle bot');
-      }
-      fetchBots();
-    } catch (err: any) {
-      alert(err.message || 'Failed to toggle bot');
-    } finally {
-      setToggling(null);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-      </div>
-    );
+  if (!userId) {
+    return redirect('/sign-in');
   }
+
+  // Get user
+  const user = await prisma.user.findUnique({
+    where: { clerkId: userId },
+  });
+
+  if (!user) {
+    return redirect('/sign-in');
+  }
+
+  // Fetch all EA instances for this user, including bot and brokerAccount info
+  const eaInstances = await prisma.eAInstance.findMany({
+    where: { userId: user.id },
+    include: {
+      bot: true,
+      brokerAccount: true,
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  // Fetch all bots (global + user-owned) for reference
+  const allBots = await prisma.bot.findMany({
+    where: {
+      OR: [
+        { userId: null },
+        { userId: user.id },
+      ],
+    },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  // Separate running vs stopped instances
+  const runningInstances = eaInstances.filter(ea => ea.status === 'RUNNING' || ea.status === 'ONLINE');
+  const stoppedInstances = eaInstances.filter(ea => ea.status !== 'RUNNING' && ea.status !== 'ONLINE');
+
+  // Compute overall auto-trading status
+  const isAutoTradingActive = runningInstances.length > 0;
 
   return (
     <div className="space-y-6 pb-24">
@@ -100,172 +74,178 @@ export default function AutoTradingPage() {
             Deploy and manage your AI-powered trading bots
           </p>
         </div>
-        <div className="flex gap-3">
-          <Link href="/dashboard/manage-bots">
-            <Button variant="outline" className="border-blue-300 text-blue-600 hover:bg-blue-50">
-              <Settings size={16} className="mr-2" />
-              Manage Bots
+        <div className="flex items-center gap-3">
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${
+            isAutoTradingActive 
+              ? 'bg-green-100 text-green-700 border border-green-200' 
+              : 'bg-gray-100 text-gray-500 border border-gray-200'
+          }`}>
+            <span className={`w-2 h-2 rounded-full ${isAutoTradingActive ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
+            {isAutoTradingActive ? 'Auto Trading Active' : 'Auto Trading Off'}
+          </div>
+          <Link href="/dashboard/prompt-trading">
+            <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white">
+              <Play size={16} className="mr-2" /> Deploy New EA
             </Button>
           </Link>
-          <Button className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white">
-            <Plus size={16} className="mr-2" />
-            Deploy New Bot
-          </Button>
         </div>
       </div>
 
       {/* Stats Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard
-          label="Active Bots"
-          value={bots.filter(b => b.isRunning).length}
-          total={bots.length}
-          icon={<Activity size={20} className="text-blue-600" />}
+          label="Total Bots"
+          value={allBots.length}
+          icon={<Bot className="w-5 h-5 text-blue-500" />}
         />
         <StatCard
-          label="Total Profit"
-          value="+142%"
-          icon={<TrendingUp size={20} className="text-green-500" />}
-          trend="up"
+          label="Running EAs"
+          value={runningInstances.length}
+          icon={<Activity className="w-5 h-5 text-green-500" />}
         />
         <StatCard
-          label="Win Rate"
-          value="78%"
-          icon={<Target size={20} className="text-purple-500" />}
+          label="Stopped EAs"
+          value={stoppedInstances.length}
+          icon={<Square className="w-5 h-5 text-gray-500" />}
         />
         <StatCard
-          label="Uptime"
-          value="99.9%"
-          icon={<Clock size={20} className="text-orange-500" />}
+          label="Total Trades"
+          value={eaInstances.reduce((acc, ea) => acc + (ea.totalTrades || 0), 0)}
+          icon={<TrendingUp className="w-5 h-5 text-purple-500" />}
         />
       </div>
 
-      {/* Bot Grid */}
-      {error ? (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-600">
-          {error}
-        </div>
-      ) : bots.length === 0 ? (
-        <div className="text-center py-12">
-          <div className="text-6xl mb-4">🤖</div>
-          <p className="text-gray-500">No bots available</p>
-          <p className="text-sm text-gray-400 mt-1">Deploy a bot to start auto trading</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {bots.map((bot) => (
-            <BotCard
-              key={bot.id}
-              bot={bot}
-              onToggle={() => toggleBot(bot.id, bot.isRunning)}
-              toggling={toggling === bot.id}
-            />
+      {/* Running Instances */}
+      {runningInstances.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold text-gray-700">🟢 Running EAs</h2>
+          {runningInstances.map((ea) => (
+            <EAInstanceCard key={ea.id} instance={ea} status="running" />
           ))}
         </div>
       )}
+
+      {/* Stopped Instances */}
+      {stoppedInstances.length > 0 && (
+        <div className="space-y-3 mt-6">
+          <h2 className="text-lg font-semibold text-gray-500">⏹️ Stopped EAs</h2>
+          {stoppedInstances.map((ea) => (
+            <EAInstanceCard key={ea.id} instance={ea} status="stopped" />
+          ))}
+        </div>
+      )}
+
+      {/* No instances */}
+      {eaInstances.length === 0 && (
+        <Card>
+          <CardContent className="py-12 text-center text-gray-500">
+            <div className="text-6xl mb-4">🤖</div>
+            <p className="text-lg font-medium">No EAs deployed yet</p>
+            <p className="text-sm text-gray-400 mt-1">
+              Go to <Link href="/dashboard/prompt-trading" className="text-blue-600 hover:underline">Prompt Trading</Link> to deploy your first EA.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Disclaimer */}
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-800">
+        <p className="font-semibold">⚠️ Disclaimer</p>
+        <p>Trading involves risk. Past performance does not guarantee future results. Always use proper risk management.</p>
+      </div>
     </div>
   );
 }
 
 // ============================================
-// COMPONENTS
+// Stat Card Component
 // ============================================
 
-function StatCard({ label, value, total, icon, trend }: any) {
+function StatCard({ label, value, icon }: { label: string; value: number; icon: React.ReactNode }) {
   return (
     <Card>
       <CardContent className="p-4 flex items-center justify-between">
         <div>
           <p className="text-xs text-gray-500">{label}</p>
-          <p className="text-xl font-bold text-gray-800">
-            {value}
-            {total !== undefined && (
-              <span className="text-sm font-normal text-gray-400 ml-1">/ {total}</span>
-            )}
-          </p>
+          <p className="text-xl font-bold text-gray-800">{value}</p>
         </div>
-        <div className="p-2 bg-gray-50 rounded-lg">
-          {icon}
-        </div>
+        <div className="p-2 bg-gray-50 rounded-lg">{icon}</div>
       </CardContent>
     </Card>
   );
 }
 
-function BotCard({ bot, onToggle, toggling }: { bot: Bot; onToggle: () => void; toggling: boolean }) {
-  const colorMap: Record<string, string> = {
-    blue: 'from-blue-500 to-indigo-600',
-    purple: 'from-purple-500 to-violet-600',
-    green: 'from-green-500 to-emerald-600',
-    orange: 'from-orange-500 to-amber-600',
-    red: 'from-red-500 to-rose-600',
-    teal: 'from-teal-500 to-cyan-600',
-  };
+// ============================================
+// EA Instance Card Component
+// ============================================
 
-  const gradient = colorMap[bot.color] || colorMap.blue;
+function EAInstanceCard({ instance, status }: { instance: any; status: 'running' | 'stopped' }) {
+  const bot = instance.bot;
+  const broker = instance.brokerAccount;
+
+  const isRunning = status === 'running';
 
   return (
-    <Card className={`border-l-4 ${bot.isRunning ? 'border-l-green-500' : 'border-l-gray-300'} hover:shadow-lg transition-shadow`}>
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 bg-gradient-to-br ${gradient} rounded-xl flex items-center justify-center text-white text-xl shadow-md`}>
-              {bot.icon}
+    <Card className={`border-l-4 ${isRunning ? 'border-l-green-500' : 'border-l-gray-300'} hover:shadow-md transition-shadow`}>
+      <CardContent className="p-4">
+        <div className="flex flex-col md:flex-row justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="text-3xl">{bot?.icon || '🤖'}</div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="font-semibold text-gray-800">{bot?.name || 'Unknown EA'}</p>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${isRunning ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                  {isRunning ? '● Running' : '● Stopped'}
+                </span>
+                <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
+                  {bot?.type || 'EA'}
+                </span>
+              </div>
+              <p className="text-sm text-gray-500">
+                {broker?.name || broker?.broker || 'Unknown Broker'} · Account: {broker?.accountId || 'N/A'}
+              </p>
+              <p className="text-xs text-gray-400">
+                Strategy: {bot?.strategy || 'N/A'} · Risk: {bot?.riskLevel || 'N/A'}
+              </p>
+              <p className="text-xs text-green-600 font-medium mt-1">{bot?.performance || ''}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+            <div>
+              <p className="text-gray-500">Balance</p>
+              <p className="font-medium text-gray-800">${instance.balance?.toFixed(2) || '0.00'}</p>
             </div>
             <div>
-              <CardTitle className="text-base font-bold">{bot.name}</CardTitle>
-              <p className="text-xs text-gray-500">{bot.type}</p>
+              <p className="text-gray-500">Equity</p>
+              <p className="font-medium text-gray-800">${instance.equity?.toFixed(2) || '0.00'}</p>
+            </div>
+            <div>
+              <p className="text-gray-500">Trades</p>
+              <p className="font-medium text-gray-800">{instance.totalTrades || 0}</p>
+            </div>
+            <div>
+              <p className="text-gray-500">P&L</p>
+              <p className={`font-medium ${(instance.profit || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                ${(instance.profit || 0).toFixed(2)}
+              </p>
             </div>
           </div>
-          <div className={`px-2 py-1 rounded-full text-xs font-medium ${bot.isRunning ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-            {bot.isRunning ? '● Running' : '● Stopped'}
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <p className="text-sm text-gray-600">{bot.description}</p>
 
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="p-2 bg-gray-50 rounded-lg text-center">
-            <p className="text-gray-500">Strategy</p>
-            <p className="font-semibold">{bot.strategy}</p>
-          </div>
-          <div className="p-2 bg-gray-50 rounded-lg text-center">
-            <p className="text-gray-500">Risk</p>
-            <p className={`font-semibold ${
-              bot.riskLevel === 'LOW' ? 'text-green-600' :
-              bot.riskLevel === 'MODERATE' ? 'text-yellow-600' :
-              'text-red-600'
-            }`}>
-              {bot.riskLevel}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex justify-between items-center">
-          <div>
-            <p className="text-xs text-gray-500">Performance</p>
-            <p className="text-sm font-bold text-green-600">{bot.performance}</p>
-          </div>
-          <Button
-            onClick={onToggle}
-            disabled={toggling}
-            variant={bot.isRunning ? 'destructive' : 'default'}
-            size="sm"
-            className="flex items-center gap-1"
-          >
-            {toggling ? (
-              <Loader2 size={14} className="animate-spin" />
-            ) : bot.isRunning ? (
-              <>
+          <div className="flex items-center gap-2 self-start md:self-center">
+            {isRunning ? (
+              <Button variant="destructive" size="sm" className="flex items-center gap-1">
                 <Square size={14} /> Stop
-              </>
+              </Button>
             ) : (
-              <>
+              <Button variant="default" size="sm" className="flex items-center gap-1 bg-green-600 hover:bg-green-700">
                 <Play size={14} /> Start
-              </>
+              </Button>
             )}
-          </Button>
+            <Link href={`/dashboard/auto-trading/${instance.id}`}>
+              <Button variant="outline" size="sm">View</Button>
+            </Link>
+          </div>
         </div>
       </CardContent>
     </Card>
