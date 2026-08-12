@@ -110,20 +110,39 @@ export default async function DashboardPage() {
   const isPositive = totalProfit >= 0;
 
   // Build activity feed from EA instances
-  const activities = [
-    ...(user.eaInstances?.map(ea => ({
+  const activities: {
+    id: string;
+    type: string;
+    message: string;
+    time: string;
+    status: string;
+  }[] = [];
+
+  for (const ea of user.eaInstances || []) {
+    const startedAt = ea.startedAt;
+    let timeAgo = 'Just now';
+    if (startedAt) {
+      const diff = Date.now() - new Date(startedAt).getTime();
+      const minutes = Math.floor(diff / 60000);
+      if (minutes < 1) timeAgo = 'Just now';
+      else if (minutes < 60) timeAgo = `${minutes} min ago`;
+      else if (minutes < 1440) timeAgo = `${Math.floor(minutes / 60)} hours ago`;
+      else timeAgo = `${Math.floor(minutes / 1440)} days ago`;
+    }
+
+    activities.push({
       id: ea.id,
       type: 'bot',
       message: `${ea.bot?.name || 'EA'} running on ${ea.brokerAccount?.name || ea.brokerAccount?.broker || 'broker'}`,
-      time: ea.startedAt ? `${Math.floor((Date.now() - new Date(ea.startedAt).getTime()) / 60000)} min ago` : 'Just now',
+      time: timeAgo,
       status: 'success',
-    })) || []),
-  ];
+    });
+  }
 
   // If no activities, show a placeholder
   if (activities.length === 0) {
     activities.push({
-      id: 0,
+      id: '0',
       type: 'info',
       message: 'No trading activity yet. Start your first EA!',
       time: 'Now',
