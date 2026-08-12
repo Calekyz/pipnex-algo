@@ -448,3 +448,40 @@ select {
   background-color: #eab308;
   box-shadow: 0 0 8px rgba(234, 179, 8, 0.4);
 }
+/* ============================================
+   AI EMOJI JUMP ANIMATION
+   ============================================ */
+@keyframes aiJump {
+  0% {
+    transform: translateY(20px) scale(0.8);
+    opacity: 0;
+  }
+  15% {
+    transform: translateY(-15px) scale(1.1);
+    opacity: 1;
+  }
+  30% {
+    transform: translateY(5px) scale(0.95);
+  }
+  45% {
+    transform: translateY(-8px) scale(1.05);
+  }
+  60% {
+    transform: translateY(3px) scale(0.98);
+  }
+  75% {
+    transform: translateY(-4px) scale(1.02);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.ai-emoji-jump {
+  display: inline-block;
+  animation: aiJump 2.5s ease-in-out forwards;
+  animation-delay: 0.5s; /* wait for page load */
+  opacity: 0; /* start hidden */
+  transform-origin: bottom;
+}
