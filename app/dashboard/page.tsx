@@ -29,7 +29,6 @@ export default async function DashboardPage() {
     redirect('/sign-in');
   }
 
-  // Fetch user and their data
   const user = await prisma.user.findUnique({
     where: { clerkId: userId },
     include: {
@@ -47,21 +46,18 @@ export default async function DashboardPage() {
     redirect('/sign-in');
   }
 
-  // Compute stats
   const totalBots = user.bots?.length || 0;
   const runningBots = user.bots?.filter(b => b.isRunning).length || 0;
   const activeEAs = user.eaInstances?.length || 0;
   const connectedBrokers = user.brokerAccounts?.length || 0;
   const isAutoTradingActive = runningBots > 0 || activeEAs > 0;
 
-  // Mock stats (replace with real data from your API)
   const signalsToday = 12;
   const tradesToday = 8;
   const pnl = '+$234.50';
   const pnlPercent = '+4.2%';
   const isPositive = pnl.startsWith('+');
 
-  // Recent activity (mock – replace with real data from database)
   const activities = [
     { id: 1, type: 'trade', message: 'BUY EUR/USD executed', time: '2 min ago', status: 'success' },
     { id: 2, type: 'signal', message: 'AI signal generated for GBP/JPY', time: '15 min ago', status: 'info' },
@@ -71,7 +67,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6 pb-24">
-      {/* ========== HEADER ========== */}
+      {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">
@@ -82,7 +78,6 @@ export default async function DashboardPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {/* Auto Trading Status Indicator */}
           <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${
             isAutoTradingActive 
               ? 'bg-green-100 text-green-700 border border-green-200' 
@@ -99,7 +94,7 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* ========== STATS CARDS ========== */}
+      {/* STATS CARDS */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard
           title="Active Bots"
@@ -133,7 +128,7 @@ export default async function DashboardPage() {
         />
       </div>
 
-      {/* ========== QUICK ACTION CARDS ========== */}
+      {/* QUICK ACTION CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <QuickActionCard
           title="AI Trading"
@@ -161,7 +156,7 @@ export default async function DashboardPage() {
         />
       </div>
 
-      {/* ========== RECENT ACTIVITY ========== */}
+      {/* RECENT ACTIVITY */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
@@ -197,7 +192,7 @@ export default async function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* ========== BOT STATUS OVERVIEW ========== */}
+      {/* BOT STATUS OVERVIEW */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
@@ -246,7 +241,7 @@ export default async function DashboardPage() {
 }
 
 // ============================================
-// Component: Stat Card
+// Stat Card
 // ============================================
 
 function StatCard({ 
@@ -300,7 +295,7 @@ function StatCard({
 }
 
 // ============================================
-// Component: Quick Action Card
+// Quick Action Card
 // ============================================
 
 function QuickActionCard({ 
@@ -326,7 +321,7 @@ function QuickActionCard({
             <p className="text-lg font-bold">{title}</p>
             <p className="text-sm opacity-90">{description}</p>
             <Link href={href}>
-              <Button variant="secondary" size="sm" className="mt-3 bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white border-0">
+              <Button variant="default" size="sm" className="mt-3 bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white border-0">
                 {buttonText} <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
             </Link>
