@@ -8,27 +8,33 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
+    // 1. Auth
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // 2. User & Credits
     const user = await prisma.user.findUnique({
       where: { clerkId: userId },
     });
-    if (!user || user.status !== 'ACTIVE') {
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+    if (user.status !== 'ACTIVE') {
       return NextResponse.json({ error: 'Account not active' }, { status: 403 });
     }
     if (user.credits <= 0) {
       return NextResponse.json({ error: 'Insufficient credits' }, { status: 402 });
     }
 
+    // 3. Symbol
     const { symbol } = await req.json();
     if (!symbol) {
       return NextResponse.json({ error: 'Symbol is required' }, { status: 400 });
     }
 
-    // Check API keys
+    // 4. API key checks
     if (!process.env.GEMINI_API_KEY) {
       console.error('GEMINI_API_KEY is missing');
       return NextResponse.json(
@@ -44,7 +50,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Fetch market data
+    // 5. Fetch market data
     const [priceData, indicators] = await Promise.all([
       getRealTimePrice(symbol),
       getTechnicalIndicators(symbol),
@@ -57,21 +63,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Generate AI analysis (handles null indicators gracefully)
+    // 6. Generate AI analysis (handles null indicators gracefully)
     const analysis = await generateForexAnalysis(symbol, priceData, indicators);
 
-    // Deduct credit
+    // 7. Deduct credit
     await prisma.user.update({
       where: { id: user.id },
       data: { credits: { decrement: 1 } },
     });
 
+    // 8. Return result with remaining credits
     return NextResponse.json({
       ...analysis,
       creditsRemaining: user.credits - 1,
     });
   } catch (error: any) {
     console.error('Analysis API error:', error.message);
+    console.error('Stack:', error.stack);
     return NextResponse.json(
       { error: 'Internal server error. Please try again later.' },
       { status: 500 }
