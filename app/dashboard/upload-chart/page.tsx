@@ -1,14 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Upload, X, Loader2, Image as ImageIcon, TrendingUp, TrendingDown, Activity } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Loader2, Upload, X, Image as ImageIcon, TrendingUp, TrendingDown, Activity, AlertCircle, CheckCircle } from 'lucide-react';
 
 interface AnalysisResult {
   pattern: string;
-  trend: string;
+  trend: 'Uptrend' | 'Downtrend' | 'Ranging';
   support: string;
   resistance: string;
   entry: string;
@@ -16,11 +17,12 @@ interface AnalysisResult {
   takeProfit: string;
   confidence: number;
   summary: string;
-  recommendation: string;
+  recommendation: 'BUY' | 'SELL' | 'HOLD';
 }
 
 export default function UploadChartPage() {
   const { user } = useUser();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -28,6 +30,23 @@ export default function UploadChartPage() {
   const [error, setError] = useState<string | null>(null);
   const [symbol, setSymbol] = useState('EUR/USD');
   const [timeframe, setTimeframe] = useState('1h');
+  const [credits, setCredits] = useState<number | null>(null);
+
+  // Fetch credits on mount
+  useState(() => {
+    const fetchCredits = async () => {
+      try {
+        const res = await fetch('/api/user/status');
+        if (res.ok) {
+          const data = await res.json();
+          setCredits(data.credits || 0);
+        }
+      } catch (err) {
+        console.error('Failed to fetch credits:', err);
+      }
+    };
+    fetchCredits();
+  });
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -41,11 +60,29 @@ export default function UploadChartPage() {
     }
   };
 
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      setSelectedFile(file);
+      const reader = new FileReader();
+      reader.onload = () => setPreview(reader.result as string);
+      reader.readAsDataURL(file);
+      setResult(null);
+      setError(null);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
+
   const handleRemoveFile = () => {
     setSelectedFile(null);
     setPreview(null);
     setResult(null);
     setError(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleAnalyze = async () => {
@@ -73,6 +110,7 @@ export default function UploadChartPage() {
 
       if (res.ok) {
         setResult(data);
+        if (data.creditsRemaining !== undefined) setCredits(data.creditsRemaining);
       } else {
         setError(data.error || 'Analysis failed. Please try again.');
       }
@@ -86,15 +124,22 @@ export default function UploadChartPage() {
   return (
     <div className="space-y-6 pb-24">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-800">Upload Chart</h1>
-        <p className="text-gray-500 text-sm">
-          Upload a screenshot of a trading chart for AI-powered analysis
-        </p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">📊 Upload Chart</h1>
+          <p className="text-gray-500 text-sm">
+            Upload a screenshot of any trading chart for AI‑powered pattern analysis and trade setups.
+          </p>
+        </div>
+        {credits !== null && (
+          <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+            Credits: {credits}
+          </span>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Upload Section */}
+        {/* LEFT: Upload & Settings */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
@@ -104,6 +149,8 @@ export default function UploadChartPage() {
           <CardContent className="space-y-4">
             {/* Drop Zone */}
             <div
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
               className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${
                 selectedFile
                   ? 'border-green-300 bg-green-50'
@@ -132,6 +179,7 @@ export default function UploadChartPage() {
                 </div>
               )}
               <input
+                ref={fileInputRef}
                 type="file"
                 accept="image/*"
                 onChange={handleFileSelect}
@@ -154,6 +202,7 @@ export default function UploadChartPage() {
                   value={symbol}
                   onChange={(e) => setSymbol(e.target.value)}
                   className="w-full p-2 border border-gray-300 rounded-lg"
+                  disabled={loading}
                 >
                   <option value="EUR/USD">EUR/USD</option>
                   <option value="GBP/USD">GBP/USD</option>
@@ -161,6 +210,7 @@ export default function UploadChartPage() {
                   <option value="AUD/USD">AUD/USD</option>
                   <option value="USD/CAD">USD/CAD</option>
                   <option value="XAU/USD">Gold (XAU/USD)</option>
+                  <option value="XAG/USD">Silver (XAG/USD)</option>
                 </select>
               </div>
               <div>
@@ -169,6 +219,7 @@ export default function UploadChartPage() {
                   value={timeframe}
                   onChange={(e) => setTimeframe(e.target.value)}
                   className="w-full p-2 border border-gray-300 rounded-lg"
+                  disabled={loading}
                 >
                   <option value="1m">1 Minute</option>
                   <option value="5m">5 Minutes</option>
@@ -180,30 +231,37 @@ export default function UploadChartPage() {
               </div>
             </div>
 
+            {/* Analyze Button */}
             <Button
               onClick={handleAnalyze}
-              disabled={!selectedFile || loading}
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-6 rounded-lg"
+              disabled={!selectedFile || loading || (credits !== null && credits <= 0)}
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-6 text-lg rounded-xl shadow-lg transition-all"
             >
               {loading ? (
-                <>
-                  <Loader2 size={18} className="animate-spin mr-2" /> Analyzing Chart...
-                </>
+                <Loader2 size={20} className="animate-spin mr-2" />
               ) : (
-                '🔍 Analyze Chart'
+                <Activity size={20} className="mr-2" />
               )}
+              {loading ? 'Analyzing...' : (credits !== null && credits <= 0) ? 'Insufficient Credits' : 'Analyze Chart'}
             </Button>
 
+            {credits !== null && credits <= 0 && (
+              <p className="text-sm text-red-500 text-center">
+                You have no credits left. Please upgrade your plan.
+              </p>
+            )}
+
             {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-                {error}
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm flex items-start gap-2">
+                <AlertCircle size={18} className="flex-shrink-0 mt-0.5" />
+                <span>{error}</span>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Results Section */}
-        <Card>
+        {/* RIGHT: Results */}
+        <Card className="min-h-[400px]">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Activity size={20} /> Analysis Results
@@ -211,9 +269,9 @@ export default function UploadChartPage() {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="text-center py-12">
-                <Loader2 size={40} className="animate-spin text-blue-600 mx-auto mb-4" />
-                <p className="text-gray-500">Analyzing your chart pattern...</p>
+              <div className="flex flex-col items-center justify-center py-16">
+                <Loader2 size={40} className="animate-spin text-blue-600 mb-4" />
+                <p className="text-gray-500">Detecting patterns and generating insights...</p>
                 <p className="text-xs text-gray-400 mt-1">This may take a few seconds</p>
               </div>
             ) : result ? (
@@ -240,7 +298,7 @@ export default function UploadChartPage() {
                   </div>
                 </div>
 
-                {/* Levels */}
+                {/* Support & Resistance */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="p-3 bg-blue-50 rounded-lg">
                     <p className="text-xs text-gray-500">Support</p>
@@ -303,20 +361,31 @@ export default function UploadChartPage() {
                   result.recommendation === 'SELL' ? 'bg-red-100 text-red-700 border border-red-200' :
                   'bg-yellow-100 text-yellow-700 border border-yellow-200'
                 }`}>
-                  {result.recommendation === 'BUY' && '📈 RECOMMENDATION: BUY'}
-                  {result.recommendation === 'SELL' && '📉 RECOMMENDATION: SELL'}
-                  {result.recommendation === 'HOLD' && '⏸️ RECOMMENDATION: HOLD'}
+                  {result.recommendation === 'BUY' && <TrendingUp size={18} className="inline mr-2" />}
+                  {result.recommendation === 'SELL' && <TrendingDown size={18} className="inline mr-2" />}
+                  {result.recommendation === 'HOLD' && <Activity size={18} className="inline mr-2" />}
+                  RECOMMENDATION: {result.recommendation}
                 </div>
+
+                <Button variant="outline" onClick={() => setResult(null)} className="w-full">
+                  Clear Results
+                </Button>
               </div>
             ) : (
-              <div className="text-center py-12">
-                <ImageIcon size={48} className="mx-auto text-gray-300 mb-3" />
-                <p className="text-gray-500">Upload a chart to see analysis</p>
-                <p className="text-xs text-gray-400 mt-1">AI will detect patterns and provide insights</p>
+              <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+                <ImageIcon size={48} className="mb-4 opacity-30" />
+                <p className="text-lg font-medium">No analysis yet</p>
+                <p className="text-sm">Upload a chart and click “Analyze Chart”</p>
               </div>
             )}
           </CardContent>
         </Card>
+      </div>
+
+      {/* Disclaimer */}
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-800">
+        <p className="font-semibold">⚠️ Risk Disclaimer</p>
+        <p>AI‑generated chart analysis is for educational purposes only. Always conduct your own research before making trading decisions.</p>
       </div>
     </div>
   );
