@@ -38,8 +38,16 @@ const SUPPORTED_BROKERS = [
 ];
 
 // ✅ EA configuration fields for each bot type
-const getEAConfigFields = (botType: string) => {
-  const baseFields = [
+interface ConfigField {
+  key: string;
+  label: string;
+  type: 'number' | 'text';
+  default: string | number;
+  step?: number;
+}
+
+const getEAConfigFields = (botType: string): ConfigField[] => {
+  const baseFields: ConfigField[] = [
     { key: 'initialLot', label: 'Initial Lot Size', type: 'number', default: 0.05, step: 0.01 },
     { key: 'martingaleMultiplier', label: 'Martingale Multiplier', type: 'number', default: 2.0, step: 0.1 },
     { key: 'tradesPerSequence', label: 'Trades Per Sequence', type: 'number', default: 3, step: 1 },
@@ -47,7 +55,7 @@ const getEAConfigFields = (botType: string) => {
     { key: 'initialSL', label: 'Initial Stop Loss (pips)', type: 'number', default: 70, step: 1 },
   ];
 
-  const scalperFields = [
+  const scalperFields: ConfigField[] = [
     { key: 'initialLot', label: 'Initial Lot Size', type: 'number', default: 0.03, step: 0.01 },
     { key: 'martingaleMultiplier', label: 'Martingale Multiplier', type: 'number', default: 2.0, step: 0.1 },
     { key: 'tradesPerSequence', label: 'Trades Per Sequence', type: 'number', default: 3, step: 1 },
@@ -55,7 +63,7 @@ const getEAConfigFields = (botType: string) => {
     { key: 'initialSL', label: 'Initial Stop Loss (pips)', type: 'number', default: 30, step: 1 },
   ];
 
-  const swingFields = [
+  const swingFields: ConfigField[] = [
     { key: 'lotSize', label: 'Lot Size', type: 'number', default: 0.05, step: 0.01 },
     { key: 'rewardRiskRatio', label: 'Reward/Risk Ratio', type: 'number', default: 3.0, step: 0.1 },
     { key: 'swingStrength', label: 'Swing Strength', type: 'number', default: 30, step: 1 },
@@ -63,7 +71,7 @@ const getEAConfigFields = (botType: string) => {
     { key: 'fibLevels', label: 'Fibonacci Levels', type: 'text', default: '0.236,0.382,0.5,0.618,0.786' },
   ];
 
-  const aiFields = [
+  const aiFields: ConfigField[] = [
     { key: 'lotSize', label: 'Lot Size', type: 'number', default: 0.04, step: 0.01 },
     { key: 'rewardRiskRatio', label: 'Reward/Risk Ratio', type: 'number', default: 3.0, step: 0.1 },
     { key: 'swingStrength', label: 'Swing Strength', type: 'number', default: 30, step: 1 },
@@ -376,18 +384,19 @@ export default function PromptTradingPage() {
                   {field.type === 'text' ? (
                     <Input
                       type="text"
-                      value={eaConfig[field.key] || ''}
+                      value={(eaConfig[field.key] as string) || ''}
                       onChange={(e) => handleConfigChange(field.key, e.target.value)}
                       className="w-full"
-                      placeholder={field.default}
+                      placeholder={String(field.default)}
                     />
                   ) : (
                     <Input
                       type="number"
                       step={field.step || 0.01}
-                      value={eaConfig[field.key] || field.default}
+                      value={eaConfig[field.key] !== undefined ? eaConfig[field.key] : field.default}
                       onChange={(e) => handleConfigChange(field.key, parseFloat(e.target.value))}
                       className="w-full"
+                      placeholder={String(field.default)}
                     />
                   )}
                 </div>
