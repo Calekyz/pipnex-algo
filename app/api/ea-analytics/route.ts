@@ -4,12 +4,24 @@ import { prisma } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
-// POST: Receive analytics from EA (used by the EA's WebRequest)
+// POST: Receive analytics from EA
 export async function POST(req: NextRequest) {
   try {
-    // 1. Verify API key
+    // 1. Get API key from header
     const apiKey = req.headers.get('x-api-key');
     const platformApiKey = process.env.PLATFORM_API_KEY;
+
+    // Log for debugging (remove in production)
+    console.log('Received API Key:', apiKey);
+    console.log('Expected API Key:', platformApiKey);
+
+    if (!platformApiKey) {
+      console.error('PLATFORM_API_KEY is not set in environment variables');
+      return NextResponse.json(
+        { error: 'Server configuration error: API key not set' },
+        { status: 500 }
+      );
+    }
 
     if (apiKey !== platformApiKey) {
       console.error('❌ Invalid API key:', apiKey);
@@ -27,7 +39,7 @@ export async function POST(req: NextRequest) {
 
     console.log(`📥 Received analytics for client: ${clientId}`);
 
-    // 3. Upsert analytics in database
+    // 3. Upsert analytics
     const analyticsRecord = await prisma.eAAnalytics.upsert({
       where: { clientId },
       update: {
@@ -93,16 +105,14 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// GET: Retrieve analytics for a specific client
+// GET: Retrieve analytics for a specific client (unchanged)
 export async function GET(req: NextRequest) {
   try {
-    // 1. Auth check (only logged-in users can fetch)
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 2. Get clientId from query param
     const clientId = req.nextUrl.searchParams.get('clientId');
     if (!clientId) {
       return NextResponse.json(
@@ -111,22 +121,17 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    console.log(`📊 Fetching analytics for client: ${clientId}`);
-
-    // 3. Fetch from database
     const analytics = await prisma.eAAnalytics.findUnique({
       where: { clientId },
     });
 
     if (!analytics) {
-      console.log(`❌ No analytics found for ${clientId}`);
       return NextResponse.json(
         { error: 'No analytics found for this client' },
         { status: 404 }
       );
     }
 
-    console.log(`✅ Analytics found for ${clientId}`);
     return NextResponse.json(analytics);
   } catch (error: any) {
     console.error('GET /api/ea-analytics error:', error);
