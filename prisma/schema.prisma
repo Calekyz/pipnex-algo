@@ -8,21 +8,20 @@ datasource db {
 }
 
 // ============================================
-// USER
+// USER & AUTH
 // ============================================
 model User {
   id            String   @id @default(cuid())
   clerkId       String   @unique
   email         String   @unique
   name          String?
-  status        String   @default("PENDING")   // PENDING, ACTIVE, EXPIRED, PENDING_VERIFICATION
+  status        String   @default("PENDING")
   credits       Int      @default(0)
-  plan          String?  // PRO, GOLD, PLATINUM
+  plan          String?
   planExpiry    DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  // Relations
   licenses      UserLicense[]
   payments      PaymentProof[]
   supportTickets SupportTicket[]
@@ -39,8 +38,8 @@ model UserLicense {
   userId        String
   user          User     @relation(fields: [userId], references: [id])
   code          String   @unique
-  plan          String   // PRO, GOLD, PLATINUM
-  duration      Int      // days
+  plan          String
+  duration      Int
   expiresAt     DateTime
   redeemedAt    DateTime @default(now())
   isActive      Boolean  @default(true)
@@ -67,12 +66,12 @@ model PaymentProof {
   id            String   @id @default(cuid())
   userId        String
   user          User     @relation(fields: [userId], references: [id])
-  method        String   // MPESA or CRYPTO
+  method        String
   amount        Int
   requestedPlan String?
   reference     String?
   screenshotUrl String?
-  status        String   @default("SUBMITTED") // SUBMITTED, VERIFIED, REJECTED
+  status        String   @default("SUBMITTED")
   verifiedBy    String?
   createdAt     DateTime @default(now())
   verifiedAt    DateTime?
@@ -86,10 +85,9 @@ model SupportTicket {
   userId        String
   user          User     @relation(fields: [userId], references: [id])
   subject       String
-  status        String   @default("OPEN") // OPEN, CLOSED
+  status        String   @default("OPEN")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-
   messages      SupportMessage[]
 }
 
@@ -97,7 +95,7 @@ model SupportMessage {
   id            String   @id @default(cuid())
   ticketId      String
   ticket        SupportTicket @relation(fields: [ticketId], references: [id])
-  sender        String   // USER or ADMIN
+  sender        String
   message       String
   isRead        Boolean  @default(false)
   createdAt     DateTime @default(now())
@@ -110,20 +108,19 @@ model Bot {
   id            String   @id @default(cuid())
   name          String
   description   String
-  type          String   // EA, AI, SCALPER, SWING, GRID, MARTINGALE
+  type          String
   strategy      String
-  riskLevel     String   // LOW, MODERATE, HIGH
-  performance   String   // e.g., "+156% Backtested in 2026"
+  riskLevel     String
+  performance   String
   icon          String   @default("🤖")
   color         String   @default("blue")
   isActive      Boolean  @default(true)
   isRunning     Boolean  @default(false)
   isArchived    Boolean  @default(false)
-  userId        String?  // null = global bot
+  userId        String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  // Relations
   user          User?    @relation(fields: [userId], references: [id])
   eaInstances   EAInstance[]
 }
@@ -137,16 +134,16 @@ model BrokerAccount {
   user          User     @relation(fields: [userId], references: [id])
   
   name          String
-  broker        String   // IC_MARKETS, VALETAX, EXNESS, JUST_MARKET, HFM, FXPRO, PEPPERSTONE
+  broker        String
   accountId     String
-  password      String   // encrypted
+  password      String
   server        String?
   apiToken      String?
   apiHost       String?
   
   isConnected   Boolean  @default(false)
   lastConnected DateTime?
-  status        String   @default("INACTIVE") // INACTIVE, ACTIVE, CONNECTED, DISCONNECTED, ERROR
+  status        String   @default("INACTIVE")
   
   enabled       Boolean  @default(true)
   maxLotSize    Float?
@@ -159,7 +156,6 @@ model BrokerAccount {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  // Relations
   eaInstances   EAInstance[]
 
   @@unique([userId, accountId, broker])
@@ -179,7 +175,7 @@ model EAInstance {
   botId         String
   bot           Bot      @relation(fields: [botId], references: [id])
   
-  status        String   @default("REGISTERED") // REGISTERED, ONLINE, RUNNING, PAUSED, STOPPED, ERROR
+  status        String   @default("REGISTERED")
   startedAt     DateTime?
   stoppedAt     DateTime?
   
@@ -189,9 +185,40 @@ model EAInstance {
   totalTrades   Int      @default(0)
   profit        Float    @default(0)
   
-  config        Json?    // EA-specific settings
+  config        Json?
   
   lastHeartbeat DateTime @default(now())
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+// ============================================
+// EA ANALYTICS (NEW)
+// ============================================
+model EAAnalytics {
+  id              String   @id @default(cuid())
+  clientId        String   @unique
+  accountType     String?  // "Live" or "Demo"
+  balance         Float    @default(0)
+  equity          Float    @default(0)
+  profit          Float    @default(0)
+  openPositions   Int      @default(0)
+  totalTrades     Int      @default(0)
+  winningTrades   Int      @default(0)
+  losingTrades    Int      @default(0)
+  winRate         Float    @default(0)
+  sequencesCompleted Int  @default(0)
+  currentSequence   Int   @default(0)
+  tradesInSequence Int   @default(0)
+  tradesPerSequence Int  @default(0)
+  inRecoveryMode  Boolean  @default(false)
+  currentLot      Float    @default(0)
+  drawdown        Float    @default(0)
+  dailyLoss       Float    @default(0)
+  gridActive      Boolean  @default(false)
+  gridAdditions   Int      @default(0)
+  maxGridAdditions Int    @default(0)
+  positions       Json?    // Array of open positions
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
