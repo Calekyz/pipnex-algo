@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,14 +10,13 @@ import {
   TrendingDown, 
   Wallet, 
   Activity, 
-  Award, 
-  Clock,
+  Target,
   RefreshCw,
   Circle,
   DollarSign,
   BarChart,
-  Target,
-  Zap
+  AlertCircle,
+  Clock
 } from 'lucide-react';
 
 interface Position {
@@ -58,49 +57,43 @@ interface Analytics {
 
 export default function EAAnalyticsPage() {
   const { user } = useUser();
-  const [analytics, setAnalytics] = useState<Analytics | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [clientId, setClientId] = useState('');
+  const [analytics, setAnalytics] = useState<Analytics | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
   const fetchAnalytics = async () => {
-    if (!clientId) return;
+    if (!clientId.trim()) {
+      setError('Please enter a Client ID.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
+
     try {
-      const res = await fetch(`/api/ea-analytics?clientId=${encodeURIComponent(clientId)}`);
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`HTTP ${res.status}: ${text.substring(0, 100)}`);
-      }
+      const res = await fetch(`/api/ea-analytics?clientId=${encodeURIComponent(clientId.trim())}`);
       const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+
       setAnalytics(data);
       setLastUpdate(new Date());
+      setError(null);
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch analytics');
+      console.error('Fetch error:', err);
+      setError(err.message || 'Failed to fetch analytics. Make sure the EA is running and sending data.');
+      setAnalytics(null);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (user) {
-      // Try to auto-fetch based on user's stored EA client ID
-      // For now, user enters it manually
-    }
-  }, [user]);
-
-  const handleRefresh = () => {
-    fetchAnalytics();
-  };
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-    }).format(value);
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') fetchAnalytics();
   };
 
   return (
@@ -113,66 +106,62 @@ export default function EAAnalyticsPage() {
             Live trading performance from your PipNex AI EA
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          {lastUpdate && (
-            <span className="text-xs text-gray-400">
-              Updated: {lastUpdate.toLocaleTimeString()}
-            </span>
-          )}
-          <Button
-            variant="outline"
-            onClick={handleRefresh}
-            disabled={loading}
-            className="flex items-center gap-2"
-          >
-            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-            Refresh
-          </Button>
-        </div>
+        {lastUpdate && (
+          <span className="text-xs text-gray-400 flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            Updated: {lastUpdate.toLocaleTimeString()}
+          </span>
+        )}
       </div>
 
-      {/* Client ID Input */}
-      {!analytics && (
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex flex-col sm:flex-row items-center gap-4 max-w-lg mx-auto">
-              <input
-                type="text"
-                placeholder="Enter EA Client ID..."
-                value={clientId}
-                onChange={(e) => setClientId(e.target.value)}
-                className="flex-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <Button
-                onClick={fetchAnalytics}
-                disabled={!clientId || loading}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                {loading ? <Loader2 size={16} className="animate-spin mr-2" /> : 'Connect'}
-              </Button>
-            </div>
-            <p className="text-xs text-gray-400 text-center mt-3">
-              Enter the Client ID from your EA (visible in the MT5 Experts log)
-            </p>
-          </CardContent>
-        </Card>
+      {/* Input Section */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex flex-col sm:flex-row items-center gap-4 max-w-lg mx-auto">
+            <input
+              type="text"
+              placeholder="Enter Client ID (e.g., 54961570_HFMarketsK)"
+              value={clientId}
+              onChange={(e) => setClientId(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="flex-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <Button
+              onClick={fetchAnalytics}
+              disabled={loading || !clientId.trim()}
+              className="bg-blue-600 hover:bg-blue-700 text-white whitespace-nowrap"
+            >
+              {loading ? <Loader2 size={16} className="animate-spin mr-2" /> : 'Connect'}
+            </Button>
+          </div>
+          <p className="text-xs text-gray-400 text-center mt-3">
+            Find your Client ID in the MT5 Experts tab (e.g., <span className="font-mono">54961570_HFMarketsK</span>)
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Error */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-600 flex items-start gap-2">
+          <AlertCircle size={18} className="flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-medium">Connection Error</p>
+            <p className="text-sm">{error}</p>
+          </div>
+        </div>
       )}
 
-      {loading && !analytics && (
+      {/* Loading */}
+      {loading && (
         <div className="flex justify-center py-16">
           <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
         </div>
       )}
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-600 text-center">
-          {error}
-        </div>
-      )}
-
-      {analytics && (
+      {/* Analytics Display */}
+      {analytics && !loading && (
         <div className="space-y-6">
-          {/* Account Type Badge */}
+          {/* Account Type Badges */}
           <div className="flex items-center gap-3 flex-wrap">
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${
               analytics.accountType === 'Live'
@@ -192,25 +181,28 @@ export default function EAAnalyticsPage() {
                 📐 Grid: {analytics.gridAdditions}/{analytics.maxGridAdditions}
               </span>
             )}
+            <Button variant="outline" size="sm" onClick={fetchAnalytics} className="ml-auto">
+              <RefreshCw size={14} className="mr-1" /> Refresh
+            </Button>
           </div>
 
           {/* Main Stats Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <StatCard
               label="Balance"
-              value={formatCurrency(analytics.balance)}
+              value={`$${analytics.balance.toFixed(2)}`}
               icon={<Wallet className="w-5 h-5 text-blue-500" />}
               color="blue"
             />
             <StatCard
               label="Equity"
-              value={formatCurrency(analytics.equity)}
+              value={`$${analytics.equity.toFixed(2)}`}
               icon={<DollarSign className="w-5 h-5 text-green-500" />}
               color="green"
             />
             <StatCard
               label="P&L"
-              value={formatCurrency(analytics.profit)}
+              value={`$${analytics.profit.toFixed(2)}`}
               icon={analytics.profit >= 0 ? <TrendingUp className="w-5 h-5 text-green-500" /> : <TrendingDown className="w-5 h-5 text-red-500" />}
               color={analytics.profit >= 0 ? 'green' : 'red'}
             />
@@ -230,7 +222,7 @@ export default function EAAnalyticsPage() {
             <SmallStat label="Open Positions" value={analytics.openPositions} />
           </div>
 
-          {/* Sequence & EA Info */}
+          {/* Sequence Info */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
@@ -315,7 +307,7 @@ export default function EAAnalyticsPage() {
             </CardContent>
           </Card>
 
-          {/* Live Data Status */}
+          {/* Live Status */}
           <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-700 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
             Live data from EA – last update: {new Date(analytics.updatedAt).toLocaleString()}
