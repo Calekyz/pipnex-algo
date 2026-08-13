@@ -18,7 +18,8 @@ import {
   CreditCard, 
   Phone, 
   Settings,
-  Globe // ✅ Import Globe icon for News
+  Globe,
+  BarChart3 // 👈 EA Analytics icon
 } from 'lucide-react';
 
 interface MenuItem {
@@ -29,7 +30,8 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   { name: 'Overview', href: '/dashboard', icon: <LayoutDashboard size={18} /> },
-  { name: 'News & Calendar', href: '/dashboard/news', icon: <Globe size={18} /> }, // ✅ NEW
+  { name: 'News & Calendar', href: '/dashboard/news', icon: <Globe size={18} /> },
+  { name: 'EA Analytics', href: '/dashboard/ea-analytics', icon: <BarChart3 size={18} /> }, // 👈 NEW
   { name: 'Prompt Trading', href: '/dashboard/prompt-trading', icon: <MessageSquare size={18} /> },
   { name: 'Auto Trading', href: '/dashboard/auto-trading', icon: <Zap size={18} /> },
   { name: 'AI Trading', href: '/dashboard/ai-trading', icon: <Bot size={18} /> },
