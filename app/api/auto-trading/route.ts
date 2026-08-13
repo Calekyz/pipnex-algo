@@ -21,7 +21,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Define the 5 global bots
+    // ============================================
+    // All 6 EA Bots (including PipNex AI)
+    // ============================================
     const EA_BOTS = [
       {
         name: 'Zillionaire EA',
@@ -32,6 +34,16 @@ export async function GET(req: NextRequest) {
         performance: '+156% Backtested in 2026',
         icon: '💰',
         color: 'gold',
+      },
+      {
+        name: 'PipNex AI',
+        description: 'Complete martingale EA with sequence trading, recovery mode, trailing stops, and optional grid averaging. Trades in sequences of 2‑5 trades with martingale lot progression. Designed for consistent returns with robust risk management.',
+        type: 'EA',
+        strategy: 'Martingale Sequence + Grid Averaging',
+        riskLevel: 'HIGH',
+        performance: '+167% Backtested in 2026',
+        icon: '🤖',
+        color: 'blue',
       },
       {
         name: 'Nova Edge AI',
@@ -75,30 +87,18 @@ export async function GET(req: NextRequest) {
       },
     ];
 
-    // Use findFirst + create/update to avoid duplicates
+    // ============================================
+    // Ensure Each Bot Exists (Upsert)
+    // ============================================
     for (const botData of EA_BOTS) {
-      const existing = await prisma.bot.findFirst({
+      const existingBot = await prisma.bot.findFirst({
         where: {
           name: botData.name,
-          userId: null, // global bot
+          userId: null,
         },
       });
 
-      if (existing) {
-        // Update existing bot
-        await prisma.bot.update({
-          where: { id: existing.id },
-          data: {
-            description: botData.description,
-            strategy: botData.strategy,
-            riskLevel: botData.riskLevel,
-            performance: botData.performance,
-            icon: botData.icon,
-            color: botData.color,
-          },
-        });
-      } else {
-        // Create new bot
+      if (!existingBot) {
         await prisma.bot.create({
           data: {
             name: botData.name,
@@ -115,10 +115,27 @@ export async function GET(req: NextRequest) {
             userId: null,
           },
         });
+        console.log(`✅ Global bot added: ${botData.name}`);
+      } else {
+        // Update existing bot with latest data
+        await prisma.bot.update({
+          where: { id: existingBot.id },
+          data: {
+            description: botData.description,
+            strategy: botData.strategy,
+            riskLevel: botData.riskLevel,
+            performance: botData.performance,
+            icon: botData.icon,
+            color: botData.color,
+          },
+        });
+        console.log(`🔄 Global bot updated: ${botData.name}`);
       }
     }
 
-    // Fetch all bots (global + user's)
+    // ============================================
+    // Fetch All Bots (Global + User-Specific)
+    // ============================================
     const where: any = {
       OR: [
         { userId: null },
