@@ -4,31 +4,40 @@ import { prisma } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
-// POST: Receive analytics from EA
+// ============================================================
+// POST: Receive analytics from EA (called via WebRequest)
+// ============================================================
 export async function POST(req: NextRequest) {
   try {
     // 1. Get API key from header
     const apiKey = req.headers.get('x-api-key');
-    const platformApiKey = process.env.PLATFORM_API_KEY;
+    // Get expected key from environment
+    let expectedKey = process.env.PLATFORM_API_KEY;
 
-    // Log for debugging (remove in production)
-    console.log('Received API Key:', apiKey);
-    console.log('Expected API Key:', platformApiKey);
+    // --- TEMPORARY HARDCODE FOR DEBUGGING (remove after confirming) ---
+    // expectedKey = "pk_live_pipnex_8f7e3a9c2b1d4e5f6g7h8i9j0k1l2m3n";
+    // --- END DEBUG ---
 
-    if (!platformApiKey) {
-      console.error('PLATFORM_API_KEY is not set in environment variables');
+    // Log for debugging (these will appear in Vercel function logs)
+    console.log('🔑 Received API Key:', apiKey);
+    console.log('🔐 Expected API Key:', expectedKey);
+
+    // 2. Check if expected key is set
+    if (!expectedKey) {
+      console.error('❌ PLATFORM_API_KEY is not set in environment variables');
       return NextResponse.json(
         { error: 'Server configuration error: API key not set' },
         { status: 500 }
       );
     }
 
-    if (apiKey !== platformApiKey) {
-      console.error('❌ Invalid API key:', apiKey);
+    // 3. Validate the key
+    if (apiKey !== expectedKey) {
+      console.error('❌ Invalid API key');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 2. Parse payload
+    // 4. Parse payload
     const data = await req.json();
     const { clientId, accountType, positions, ...analytics } = data;
 
@@ -39,7 +48,7 @@ export async function POST(req: NextRequest) {
 
     console.log(`📥 Received analytics for client: ${clientId}`);
 
-    // 3. Upsert analytics
+    // 5. Upsert analytics in database
     const analyticsRecord = await prisma.eAAnalytics.upsert({
       where: { clientId },
       update: {
@@ -105,14 +114,18 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// GET: Retrieve analytics for a specific client (unchanged)
+// ============================================================
+// GET: Retrieve analytics for a specific client
+// ============================================================
 export async function GET(req: NextRequest) {
   try {
+    // 1. Auth check (only logged-in users can fetch)
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // 2. Get clientId from query param
     const clientId = req.nextUrl.searchParams.get('clientId');
     if (!clientId) {
       return NextResponse.json(
@@ -121,17 +134,22 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    console.log(`📊 Fetching analytics for client: ${clientId}`);
+
+    // 3. Fetch from database
     const analytics = await prisma.eAAnalytics.findUnique({
       where: { clientId },
     });
 
     if (!analytics) {
+      console.log(`❌ No analytics found for ${clientId}`);
       return NextResponse.json(
         { error: 'No analytics found for this client' },
         { status: 404 }
       );
     }
 
+    console.log(`✅ Analytics found for ${clientId}`);
     return NextResponse.json(analytics);
   } catch (error: any) {
     console.error('GET /api/ea-analytics error:', error);
